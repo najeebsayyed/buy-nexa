@@ -70,3 +70,9 @@ desktop.ini
 .vscode/
 *.swp
 *.swo
+
+
+# BuyNexa project documentation (local only)
+/Product.md
+/Architecture.md
+/AGENTS.md
