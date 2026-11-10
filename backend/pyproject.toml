@@ -5,7 +5,7 @@ description = "BuyNexa Backend — AI shopping copilot and agentic-commerce back
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "fastapi>=0.115.0",
+    "fastapi[standard]>=0.115.0",
     "uvicorn[standard]>=0.32.0",
     "pydantic>=2.10.0",
     "pydantic-settings>=2.6.0",
