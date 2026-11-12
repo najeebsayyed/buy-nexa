@@ -18,13 +18,15 @@ BuyNexa is structured as a modular single-repository containing two applications
 
 ```mermaid
 flowchart TD
-    Shopper[Shopper / Browser] -->|Vite Proxy /api| API[FastAPI Backend]
-    API --> Services[Domain Services]
-    Services --> DB[(PostgreSQL)]
+    Shopper[Shopper / Browser UI] -->|Vite Proxy /api| API[FastAPI Backend]
+    API --> Services[Domain Feature Services]
+    Services --> DB[(PostgreSQL / SQLite)]
     Services --> AI[OpenAI Client Adapter]
-    Services --> C3[Channel3 Adapter (Phase 2)]
-    Services --> PP[PayPal Server Adapter (Phase 3)]
-    AI --> OpenAI[OpenAI API (GPT-4o-mini)]
+    Services --> C3[Channel3 Discovery Adapter]
+    Services --> PP[PayPal Orders v2 Adapter]
+    AI --> OpenAI[OpenAI API Structured Output]
+    C3 --> Channel3[Channel3 Real Merchant Search]
+    PP --> PayPal[PayPal Sandbox REST API]
 ```
 
 ### Trust & Security Boundaries
@@ -32,6 +34,23 @@ flowchart TD
 1. **Anonymous Sessions**: Shoppers are issued cryptographically secure opaque tokens via `HttpOnly`, `SameSite=Lax` cookies. The server persists only SHA-256 hashes in the database.
 2. **Discovery vs. Checkout**: Channel3 products are external retailer listings that link out to third-party stores. PayPal checkout is exclusively for controlled BuyNexa Sandbox Store demo items.
 3. **Evidence-Grounded AI**: The AI extracts structured intent (`ShoppingBrief`) and summarizes factual product evidence. The model never sets prices, approves payments, or captures orders.
+4. **Server-Authoritative Pricing**: Cart totals and line items are calculated in integer minor units from database catalog pricing upon order creation.
+
+---
+
+## Implemented User Journeys & Screens
+
+| Screen | Route | Description | Backend Endpoint |
+| :--- | :--- | :--- | :--- |
+| **1. Shopping Landing** | `/` | Hero, natural language prompt composer, curated example prompts, and trust disclosures | `POST /api/v1/briefs` |
+| **2. Brief Extraction** | Inline | Intentional multi-phase loading status transitions while extracting constraints | `POST /api/v1/briefs` |
+| **3. Brief Review** | `/search/:briefId` | Editable criteria: category, use cases, budget mode, must-haves, preferences, exclusions | `GET/PATCH /api/v1/briefs/{id}` |
+| **4. Discovery Results** | `/search/:briefId/results` | Ranked product cards with fit scores, evidence bullets, missing specs, and retailer links | `POST /api/v1/search` |
+| **5. Product Comparison** | `/compare` | Side-by-side specification alignment matrix (up to 3 products) with sticky headers | `POST /api/v1/compare` |
+| **6. Demo Store** | `/demo-store` | Sandbox store catalog items with add-to-cart controls and clear test disclaimers | `GET /api/v1/demo-catalog` |
+| **7. Server Cart** | `/cart` | Line items, quantities, and server-authoritative subtotal/totals in integer minor units | `GET/POST/PATCH/DELETE /api/v1/cart` |
+| **8. PayPal Checkout** | `/checkout` | Official PayPal JavaScript SDK buttons with server-side Orders v2 order creation | `POST /api/v1/payments/paypal/orders` |
+| **9. Order Confirmation** | `/orders/:orderId` | Verified order receipt with PayPal capture reference and Sandbox disclaimer | `GET /api/v1/orders/{orderId}` |
 
 ---
 
@@ -41,51 +60,51 @@ flowchart TD
 buy-nexa/
 ├── frontend/                     # React + TypeScript + Vite frontend
 │   ├── src/
-│   │   ├── lib/                  # Reusable typed API client
-│   │   ├── test/                 # Test setup and mocks
-│   │   ├── App.tsx               # Application shell & status view
-│   │   └── main.tsx              # Application mount
+│   │   ├── app/
+│   │   │   ├── router.tsx        # Typed client router supporting all 9 routes
+│   │   │   └── routes/           # Page routes (home, brief, results, compare, store, cart, checkout, order)
+│   │   ├── components/
+│   │   │   ├── ui/               # Reusable primitives (button, input, textarea, badge, card, skeleton)
+│   │   │   ├── layout/           # AppShell, responsive Navbar, and Footer
+│   │   │   ├── brief/            # PromptComposer and BriefEditor
+│   │   │   ├── shopping/         # ProductCard with evidence and fit score badges
+│   │   │   ├── comparison/       # Responsive ComparisonTable (modern-web-guidance compliant)
+│   │   │   └── checkout/         # PayPalCheckoutButton with dynamic SDK loading
+│   │   ├── features/
+│   │   │   ├── cart/             # CartProvider and cart hooks
+│   │   │   └── comparison/       # ComparisonProvider with session persistence
+│   │   ├── lib/
+│   │   │   ├── api-client.ts     # Centralized typed HTTP client with error handling
+│   │   │   ├── formatters.ts     # Currency (minor units) and score tier formatters
+│   │   │   └── utils.ts          # Tailwind utility merging and ID helpers
+│   │   ├── types/                # TypeScript domain models (brief, product, cart, payment)
+│   │   └── test/                 # Test suites (App, formatters, comparison, router)
 │   ├── package.json
-│   ├── tsconfig.json
 │   ├── vite.config.ts            # Configured with /api proxy to FastAPI (port 8000)
 │   └── vitest.config.ts
 ├── backend/                      # Python + FastAPI backend
 │   ├── alembic/                  # Versioned database migrations
-│   │   ├── versions/
-│   │   │   └── 0001_initial_sessions_and_briefs.py
-│   │   └── env.py
+│   │   └── versions/             # Migration scripts
 │   ├── app/
-│   │   ├── api/                  # Dependencies and versioned endpoints
-│   │   │   ├── deps.py           # Database and session injection
+│   │   ├── api/
+│   │   │   ├── deps.py           # Dependency injection for session and DB
 │   │   │   └── v1/
 │   │   │       ├── endpoints/
 │   │   │       │   ├── health.py # /api/v1/health/live & /api/v1/health/ready
-│   │   │       │   └── briefs.py # /api/v1/briefs (POST, PATCH)
+│   │   │       │   ├── briefs.py # /api/v1/briefs (POST, GET, PATCH)
+│   │   │       │   ├── search.py # /api/v1/search & /api/v1/compare
+│   │   │       │   ├── catalog.py# /api/v1/demo-catalog
+│   │   │       │   ├── cart.py   # /api/v1/cart (GET, POST, PATCH, DELETE)
+│   │   │       │   └── payments.py# /api/v1/payments/paypal/orders & capture
 │   │   │       └── router.py
-│   │   ├── core/                 # Centralized configuration, logging, errors, security
-│   │   │   ├── config.py         # Pydantic Settings
-│   │   │   ├── logging.py        # JSON structured logging with redaction
-│   │   │   ├── errors.py         # Standard error handling and exceptions
-│   │   │   └── security.py       # Session token generation and hashing
-│   │   ├── db/                   # SQLAlchemy engine, session, and declarative models
-│   │   │   ├── models/           # ShoppingSession and ShoppingBrief models
-│   │   │   ├── base.py
-│   │   │   └── session.py
-│   │   ├── features/             # Business feature services and repositories
-│   │   │   └── briefs/
-│   │   ├── integrations/         # External provider adapters
-│   │   │   └── openai/           # OpenAI client with structured output extraction
-│   │   ├── schemas/              # Pydantic API boundary schemas
+│   │   ├── core/                 # Settings, structured logging, errors, security
+│   │   ├── db/                   # SQLAlchemy declarative models & async session
+│   │   ├── features/             # Business feature services & repositories
+│   │   ├── integrations/         # External provider adapters (OpenAI, Channel3, PayPal)
+│   │   ├── schemas/              # Pydantic boundary contracts
 │   │   └── main.py               # FastAPI entrypoint, middleware, exception handlers
-│   ├── tests/                    # Unit, integration, and API tests
-│   │   ├── api/
-│   │   ├── integration/
-│   │   └── unit/
-│   ├── pyproject.toml
-│   ├── uv.lock
-│   └── alembic.ini
+│   └── tests/                    # 25 automated pytest tests
 ├── .env.example                  # Environment configuration template
-├── .gitignore
 ├── AGENTS.md                     # Engineering and contributor guidelines
 ├── Architecture.md               # Detailed system architecture document
 ├── Product.md                    # Product specification document
@@ -94,169 +113,74 @@ buy-nexa/
 
 ---
 
-## Prerequisites
+## Local Development & Setup
 
-- **Python 3.12+** (managed via `uv`)
-- **uv** (`>= 0.12.0`)
-- **Node.js** (`>= 20.0.0`)
-- **pnpm** (`>= 9.0.0`)
-- **PostgreSQL** (`>= 15.0`) for live database persistence (in-memory SQLite is used automatically in tests)
+### 1. Prerequisites
 
----
+- **Node.js 20+** and **pnpm**
+- **Python 3.12+** and **uv**
 
-## Getting Started
+### 2. Environment Configuration
 
-### 1. Environment Configuration
-
-Copy the example environment configuration into `.env` at the project root:
+Copy `.env.example` to `backend/.env` and configure your credentials:
 
 ```bash
-cp .env.example .env
-```
-
-Configure the following variables in `.env`:
-
-```env
-APP_NAME=BuyNexa
-APP_ENV=development
-API_V1_PREFIX=/api/v1
-
-FRONTEND_ORIGIN=http://localhost:5173
-
-# PostgreSQL connection string
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/buynexa
-
-# OpenAI API Key (required for live brief extraction)
-OPENAI_API_KEY=your-openai-api-key
+# Server-only credentials (never exposed to frontend)
+DATABASE_URL=sqlite+aiosqlite:///buynexa.db
+OPENAI_API_KEY=your_openai_api_key
 OPENAI_MODEL=gpt-4o-mini
-
-# Channel3 (Phase 2)
-CHANNEL3_API_KEY=
-
-# PayPal Orders v2 Sandbox (Phase 3)
-PAYPAL_CLIENT_ID=
-PAYPAL_CLIENT_SECRET=
+CHANNEL3_API_KEY=your_channel3_api_key
+PAYPAL_CLIENT_ID=your_paypal_sandbox_client_id
+PAYPAL_CLIENT_SECRET=your_paypal_sandbox_client_secret
 PAYPAL_BASE_URL=https://api-m.sandbox.paypal.com
-
-# Anonymous Session
-SESSION_COOKIE_NAME=buynexa_session
-SESSION_COOKIE_SECURE=false
-SESSION_MAX_AGE_DAYS=30
 ```
 
----
-
-### 2. Backend Setup & Local Server
-
-Navigate to the `backend/` directory:
-
+In `frontend/.env`:
 ```bash
+VITE_PAYPAL_CLIENT_ID=your_paypal_sandbox_client_id
+```
+
+### 3. Starting the Applications
+
+#### Terminal 1 — FastAPI Backend:
+```powershell
 cd backend
+uv run python -m uvicorn app.main:app --reload --port 8000
 ```
+- Interactive Swagger API documentation: [http://localhost:8000/docs](http://localhost:8000/docs)
+- OpenAPI JSON Schema: [http://localhost:8000/openapi.json](http://localhost:8000/openapi.json)
 
-Install pinned dependencies using `uv`:
-
-```bash
-uv sync
-```
-
-Run database migrations against PostgreSQL:
-
-```bash
-uv run alembic upgrade head
-```
-
-Start the FastAPI development server with hot-reload:
-
-```bash
-uv run fastapi dev app/main.py --port 8000
-```
-
-The interactive API documentation is accessible at:
-- **Swagger UI**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-- **ReDoc**: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
-
----
-
-### 3. Frontend Setup & Local Server
-
-In a separate terminal, navigate to the `frontend/` directory:
-
-```bash
+#### Terminal 2 — React Frontend:
+```powershell
 cd frontend
-```
-
-Install frontend dependencies using `pnpm`:
-
-```bash
-pnpm install
-```
-
-Start the Vite development server:
-
-```bash
 pnpm dev
 ```
-
-Open [http://localhost:5173](http://localhost:5173) in your browser.  
-Vite's proxy forwards `/api` requests to `http://127.0.0.1:8000` automatically, preserving same-origin session cookies.
+- Access the web interface at [http://localhost:5173](http://localhost:5173). All `/api` calls are seamlessly proxied to the FastAPI server.
 
 ---
 
-## Running Tests & Quality Checks
+## Verification & Testing
 
-### Backend Quality Suite
-
-```bash
+### Backend Quality Gates
+```powershell
 cd backend
-
-# Run Ruff linter
-uv run ruff check .
-
-# Check Ruff formatting
-uv run ruff format --check .
-
-# Run all automated tests (unit, integration, and API tests)
-uv run pytest -v
+uv run python -m ruff check .          # Linting
+uv run python -m ruff format --check . # Formatting check
+uv run python -m pytest -v             # 25 automated tests
 ```
 
-### Frontend Quality Suite
-
-```bash
+### Frontend Quality Gates
+```powershell
 cd frontend
-
-# Run TypeScript type check
-pnpm typecheck
-
-# Run Oxlint / ESLint
-pnpm lint
-
-# Run Vitest component tests
-pnpm test
-
-# Build production bundle
-pnpm build
+pnpm typecheck                         # Strict TypeScript compiler verification
+pnpm test                              # 27 automated Vitest unit/component tests
+pnpm build                             # Production bundle build
 ```
 
 ---
 
-## Implemented API Endpoints (Phase 1)
+## License & Sandbox Disclosure
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/v1/health/live` | Process liveness monitoring |
-| `GET` | `/api/v1/health/ready` | Database readiness check |
-| `POST` | `/api/v1/briefs` | Extracts shopper intent via OpenAI and persists `ShoppingBrief` with anonymous session cookie |
-| `PATCH` | `/api/v1/briefs/{brief_id}` | Updates user-confirmed brief criteria with session ownership verification |
+This project is licensed under the MIT License.
 
----
-
-## Sandbox Demo Disclosure
-
-PayPal checkout in BuyNexa is exclusively for demonstration purposes using seeded demo catalog items in the PayPal Sandbox environment. No real money is transferred and no real goods are fulfilled. External Channel3 retailer listings link directly to third-party stores.
-
----
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
+**Notice:** BuyNexa is an AI Hackathon project. The demo store and PayPal checkout operate solely against the PayPal Sandbox testing environment with no real monetary transfers and no fulfillment. External product listings link out to live third-party retailers.
