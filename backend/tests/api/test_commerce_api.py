@@ -94,3 +94,29 @@ async def test_search_endpoint(async_client: AsyncClient) -> None:
     assert "recommendation" in first_item
     assert first_item["recommendation"]["fit_score"] >= 0
     assert first_item["recommendation"]["rank"] == 1
+
+
+@pytest.mark.asyncio
+async def test_search_endpoint_category_specific_laptop(async_client: AsyncClient) -> None:
+    """Verify searching for laptops returns laptops and never defaults to headphones."""
+    # 1. Create a laptop shopping brief
+    brief_res = await async_client.post(
+        "/api/v1/briefs",
+        json={"query": "High-performance laptop for programming and machine learning under $1500"},
+    )
+    assert brief_res.status_code == 201
+    brief_id = brief_res.json()["id"]
+
+    # 2. Call search
+    search_res = await async_client.post(
+        "/api/v1/search",
+        json={"brief_id": brief_id, "limit": 3},
+    )
+    assert search_res.status_code == 200
+    data = search_res.json()
+    assert len(data["items"]) > 0
+
+    # Ensure none of the returned items are headphones
+    for item in data["items"]:
+        title_lower = item["product"]["title"].lower()
+        assert "headphone" not in title_lower, f"Found headphones in laptop search: {title_lower}"

@@ -87,6 +87,41 @@ class MockOpenAIAdapter(OpenAIAdapter):
     async def extract_shopping_brief(self, query: str) -> ShoppingBriefData:
         if self.should_fail and self.failure_exc:
             raise self.failure_exc
+
+        q_lower = query.lower()
+        if "laptop" in q_lower:
+            return ShoppingBriefData(
+                category="laptop",
+                use_cases=["programming", "development"],
+                budget=Budget(amount=1500.0, currency="USD", mode="hard_limit"),
+                must_have=["16GB RAM", "SSD"],
+                preferences=["lightweight"],
+                exclusions=[],
+                preferred_brands=[],
+                locale="US",
+            )
+        if "monitor" in q_lower:
+            return ShoppingBriefData(
+                category="monitor",
+                use_cases=["office", "coding"],
+                budget=Budget(amount=500.0, currency="USD", mode="hard_limit"),
+                must_have=["4K", "USB-C"],
+                preferences=["IPS"],
+                exclusions=[],
+                preferred_brands=[],
+                locale="US",
+            )
+        if "shoe" in q_lower:
+            return ShoppingBriefData(
+                category="running shoes",
+                use_cases=["marathon", "running"],
+                budget=Budget(amount=150.0, currency="USD", mode="hard_limit"),
+                must_have=["cushioning"],
+                preferences=["breathable"],
+                exclusions=[],
+                preferred_brands=[],
+                locale="US",
+            )
         return self.canned_data
 
 
