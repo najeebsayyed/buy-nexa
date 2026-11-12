@@ -1,4 +1,4 @@
-"""Shopping brief creation and update endpoints."""
+"""Shopping brief creation, retrieval, and update endpoints."""
 
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,6 +31,25 @@ async def create_shopping_brief(
     """Extracts shopper constraints via OpenAI and saves the shopping brief."""
     return await service.create_brief(
         payload=payload,
+        shopper_session=shopper_session,
+        db=db,
+    )
+
+
+@router.get(
+    "/{brief_id}",
+    response_model=ShoppingBriefResponse,
+    summary="Retrieve an existing shopping brief by ID",
+)
+async def get_shopping_brief(
+    brief_id: str,
+    shopper_session: ShoppingSession = Depends(get_shopper_session),
+    db: AsyncSession = Depends(get_db_session),
+    service: BriefService = Depends(lambda: brief_service),
+) -> ShoppingBriefResponse:
+    """Retrieves an existing shopping brief after validating session ownership."""
+    return await service.get_brief(
+        brief_id=brief_id,
         shopper_session=shopper_session,
         db=db,
     )

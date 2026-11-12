@@ -49,6 +49,32 @@ class BriefService:
             updated_at=brief.updated_at,
         )
 
+    async def get_brief(
+        self,
+        brief_id: str,
+        shopper_session: ShoppingSession,
+        db: AsyncSession,
+    ) -> ShoppingBriefResponse:
+        """Retrieves an existing shopping brief after validating session ownership."""
+        brief_record = await self.repo.get_brief_by_id(db, brief_id)
+        if not brief_record:
+            raise NotFoundException(
+                message=f"Shopping brief with id '{brief_id}' was not found.",
+                code="BRIEF_NOT_FOUND",
+            )
+
+        if brief_record.session_id != shopper_session.id:
+            logger.warning(
+                "Unauthorized brief access attempt across sessions",
+                extra={"extra_data": {"brief_id": brief_id, "session_id": shopper_session.id}},
+            )
+            raise ForbiddenException(
+                message="You do not have permission to view this shopping brief.",
+                code="BRIEF_OWNERSHIP_MISMATCH",
+            )
+
+        return self._to_response_dto(brief_record)
+
     async def create_brief(
         self,
         payload: ShoppingBriefCreateRequest,
@@ -105,13 +131,12 @@ class BriefService:
                 code="BRIEF_OWNERSHIP_MISMATCH",
             )
 
-        # Merge updates into existing normalized JSON without overwriting with None
+        # Merge updates: exclude_unset=True includes fields that were explicitly sent (even if None)
         current_data = dict(brief_record.normalized_json or {})
         update_dict = payload.model_dump(exclude_unset=True)
 
         for key, value in update_dict.items():
-            if value is not None:
-                current_data[key] = value
+            current_data[key] = value
 
         updated_record = await self.repo.update_brief(db, brief_record, current_data)
         return self._to_response_dto(updated_record)

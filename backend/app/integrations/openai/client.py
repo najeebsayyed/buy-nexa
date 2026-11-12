@@ -10,22 +10,23 @@ from app.core.logging import logger
 from app.schemas.brief import ShoppingBriefData
 
 BRIEF_EXTRACTION_SYSTEM_PROMPT = """You are BuyNexa's shopping intent extraction analyst.
-Analyze the shopper's natural-language buying goal to produce a structured brief.
+Analyze the shopper's natural-language buying goal and produce a structured brief.
 
 Guidelines:
-1. Extract product category if stated or implied (e.g. "wireless headphones", "monitor").
-2. Extract specific use cases (e.g. "travel", "office calls", "gaming on a small desk").
+1. Extract product category (e.g. 'wireless headphones', '4k monitor').
+2. Extract specific use cases (e.g. ['travel', 'office calls', 'coding']).
 3. Extract budget if stated:
-   - amount: numeric value (positive float)
-   - currency: ISO 4217 3-letter code (default to 'USD' if unspecified or $)
-   - mode: 'hard_limit' if 'under $X', 'max $X'; 'target' if 'around $X', 'ideally'.
-4. must_have: explicit non-negotiable requirements (e.g. 'active noise cancellation').
-5. preferences: soft preferences or desired attributes (e.g. 'comfortable', 'compact').
-6. exclusions: explicit negatives or styles to avoid (e.g. 'bulky models', 'wired').
+   - amount: numeric positive float (e.g. 150.0 for '$150')
+   - currency: ISO 4217 3-letter code (default 'USD' for '$' or US context)
+   - mode: 'hard_limit' for 'under $X', 'max $X', 'below $X', 'up to $X'; 'target' for 'around $X', 'ideally'.
+   CRITICAL: If a budget or price limit is stated, ALWAYS populate the budget object.
+4. must_have: features described as important, required, or essential (e.g. 'noise cancellation is important' -> ['noise cancellation']).
+5. preferences: soft preferences or desirable attributes (e.g. ['comfortable', 'compact']).
+6. exclusions: explicit negatives, dealbreakers, or styles to avoid (e.g. ['bulky models', 'wired']).
 7. preferred_brands: specific manufacturer/brand names mentioned favorably.
 8. locale: shopper locale if mentioned (e.g. 'US', 'UK'), else null.
 
-CRITICAL: Never invent details, prices, or brands not stated. Keep unknown values as null or []."""
+CRITICAL: Never invent facts or brands not mentioned. Keep unknown values as null or []."""
 
 
 class OpenAIClientProtocol(Protocol):
