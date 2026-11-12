@@ -103,7 +103,7 @@ buy-nexa/
 │   │   ├── integrations/         # External provider adapters (OpenAI, Channel3, PayPal)
 │   │   ├── schemas/              # Pydantic boundary contracts
 │   │   └── main.py               # FastAPI entrypoint, middleware, exception handlers
-│   └── tests/                    # 25 automated pytest tests
+│   └── tests/                    # 28 automated pytest tests
 ├── .env.example                  # Environment configuration template
 ├── AGENTS.md                     # Engineering and contributor guidelines
 ├── Architecture.md               # Detailed system architecture document
@@ -125,8 +125,11 @@ buy-nexa/
 Copy `.env.example` to `backend/.env` and configure your credentials:
 
 ```bash
+# PostgreSQL (default) or SQLite (quick local dev)
+DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/buynexa
+# DATABASE_URL=sqlite+aiosqlite:///buynexa.db
+
 # Server-only credentials (never exposed to frontend)
-DATABASE_URL=sqlite+aiosqlite:///buynexa.db
 OPENAI_API_KEY=your_openai_api_key
 OPENAI_MODEL=gpt-4o-mini
 CHANNEL3_API_KEY=your_channel3_api_key
