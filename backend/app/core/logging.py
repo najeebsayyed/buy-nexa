@@ -83,3 +83,6 @@ def setup_logging(level: str = "INFO") -> None:
 
 
 logger = logging.getLogger("buynexa")
+def get_logger(name: str = "buynexa") -> logging.Logger:
+    """Return a named logger within the structured logging framework."""
+    return logging.getLogger(name)

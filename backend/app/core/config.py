@@ -32,6 +32,7 @@ class Settings(BaseSettings):
 
     # Channel3 API (server-side only)
     CHANNEL3_API_KEY: str | None = None
+    CHANNEL3_BASE_URL: str = "https://api.trychannel3.com"
 
     # PayPal Orders v2 Sandbox (server-side only)
     PAYPAL_CLIENT_ID: str | None = None
@@ -56,3 +57,9 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+def get_settings() -> Settings:
+    """Return the cached application settings instance."""
+    return settings
+

@@ -2,8 +2,12 @@
 
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import briefs, health
+from app.api.v1.endpoints import briefs, cart, catalog, health, payments, search
 
 api_v1_router = APIRouter()
 api_v1_router.include_router(health.router)
 api_v1_router.include_router(briefs.router)
+api_v1_router.include_router(search.router)
+api_v1_router.include_router(catalog.router)
+api_v1_router.include_router(cart.router)
+api_v1_router.include_router(payments.router)
