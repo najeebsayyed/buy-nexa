@@ -159,6 +159,33 @@ pnpm dev
 
 ---
 
+## Production Deployment with Docker
+
+BuyNexa includes production-grade containerization with multi-stage Dockerfiles and Docker Compose orchestration:
+
+- **Frontend Container**: Multi-stage build (`node:22-alpine` $\rightarrow$ `nginx:alpine`) serving optimized production assets with gzip compression, security headers (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`), and reverse-proxying `/api/` to the backend.
+- **Backend Container**: Lightweight `python:3.12-slim` image using Astral `uv`, non-root user execution (`appuser`), automated Alembic migrations on startup, and production Uvicorn with proxy headers.
+- **PostgreSQL Database**: `postgres:16-alpine` with automated healthchecks via `pg_isready`.
+
+### Quick Start with Docker Compose
+
+1. Configure your production environment variables in `.env`:
+```bash
+cp .env.example .env
+# Fill in your OPENAI_API_KEY, CHANNEL3_API_KEY, and PayPal Sandbox credentials
+```
+
+2. Build and launch all services:
+```bash
+docker compose up -d --build
+```
+
+3. Access the application:
+- **Web UI & API Proxy**: [http://localhost:3000](http://localhost:3000)
+- **Direct Backend Health Check**: [http://localhost:8000/api/v1/health/live](http://localhost:8000/api/v1/health/live)
+
+---
+
 ## Verification & Testing
 
 ### Backend Quality Gates
@@ -166,7 +193,7 @@ pnpm dev
 cd backend
 uv run python -m ruff check .          # Linting
 uv run python -m ruff format --check . # Formatting check
-uv run python -m pytest -v             # 25 automated tests
+uv run python -m pytest -v             # 28 automated tests
 ```
 
 ### Frontend Quality Gates

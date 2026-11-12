@@ -56,6 +56,14 @@ class Settings(BaseSettings):
         return self.APP_ENV == "production"
 
     @property
+    def openai_api_key(self) -> str | None:
+        return self.OPENAI_API_KEY
+
+    @property
+    def openai_model(self) -> str:
+        return self.OPENAI_MODEL
+
+    @property
     def channel3_api_key(self) -> str | None:
         return self.CHANNEL3_API_KEY
 

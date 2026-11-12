@@ -14,6 +14,8 @@ import {
   RefreshCw,
   AlertCircle,
   ShoppingBag,
+  Clock,
+  Sparkles,
 } from 'lucide-react'
 
 export const ResultsRoute: React.FC<{ briefId: string }> = ({ briefId }) => {
@@ -23,10 +25,12 @@ export const ResultsRoute: React.FC<{ briefId: string }> = ({ briefId }) => {
   const [results, setResults] = useState<ProductSearchResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [errorCode, setErrorCode] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
     setLoading(true)
     setError(null)
+    setErrorCode(null)
     try {
       const loadedBrief = await apiClient.briefs.get(briefId)
       setBrief(loadedBrief)
@@ -35,10 +39,13 @@ export const ResultsRoute: React.FC<{ briefId: string }> = ({ briefId }) => {
       setResults(searchRes)
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(`Search service error (${err.code}): ${err.message}`)
+        setErrorCode(err.code)
+        setError(err.message)
       } else if (err instanceof Error) {
+        setErrorCode('CLIENT_ERROR')
         setError(err.message)
       } else {
+        setErrorCode('UNKNOWN_ERROR')
         setError('Failed to retrieve product recommendations from the search engine.')
       }
     } finally {
@@ -150,15 +157,46 @@ export const ResultsRoute: React.FC<{ briefId: string }> = ({ briefId }) => {
         </div>
       )}
 
-      {/* Error State */}
-      {error && !loading && (
+      {/* Error States */}
+      {error && !loading && (errorCode === 'BRIEF_OWNERSHIP_MISMATCH' || errorCode === 'BRIEF_NOT_FOUND' || errorCode === 'HTTP_403' || errorCode === 'HTTP_404') && (
         <div className="max-w-md mx-auto text-center py-16 space-y-4">
-          <div className="p-3 rounded-2xl bg-rose-500/10 text-rose-400 w-fit mx-auto">
+          <div className="p-3 rounded-2xl bg-amber-500/10 text-amber-400 w-fit mx-auto border border-amber-500/20">
+            <Clock className="h-6 w-6" />
+          </div>
+          <h2 className="text-xl font-bold text-white">Shopping Session Expired</h2>
+          <p className="text-sm text-slate-400">
+            This shopping brief was created in an earlier browser session or has expired. You can start a fresh AI shopping brief in seconds.
+          </p>
+          <div className="flex justify-center gap-3 pt-2">
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={() => navigate('/')}
+              leftIcon={<Sparkles className="h-4 w-4" />}
+            >
+              Start New Search
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/store')}
+            >
+              Browse Demo Store
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {error && !loading && errorCode !== 'BRIEF_OWNERSHIP_MISMATCH' && errorCode !== 'BRIEF_NOT_FOUND' && errorCode !== 'HTTP_403' && errorCode !== 'HTTP_404' && (
+        <div className="max-w-md mx-auto text-center py-16 space-y-4">
+          <div className="p-3 rounded-2xl bg-rose-500/10 text-rose-400 w-fit mx-auto border border-rose-500/20">
             <AlertCircle className="h-6 w-6" />
           </div>
           <h2 className="text-xl font-bold text-white">Discovery Service Unavailable</h2>
           <p className="text-sm text-slate-400">{error}</p>
-          <div className="flex justify-center gap-3 pt-2">
+          <div className="flex flex-wrap justify-center gap-3 pt-2">
             <Button
               type="button"
               variant="primary"
@@ -173,8 +211,17 @@ export const ResultsRoute: React.FC<{ briefId: string }> = ({ briefId }) => {
               variant="outline"
               size="sm"
               onClick={() => navigate(`/search/${briefId}`)}
+              leftIcon={<SlidersHorizontal className="h-4 w-4" />}
             >
               Refine Requirements
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/')}
+            >
+              Start New Search
             </Button>
           </div>
         </div>

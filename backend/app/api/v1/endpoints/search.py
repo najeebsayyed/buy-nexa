@@ -591,21 +591,21 @@ def _calculate_recommendation(
 
     # 2. Must-Have Features Check
     for req in must_have:
-        req_clean = req.strip().lower()
+        req_clean = str(req or "").strip().lower()
         if req_clean and req_clean in text_corpus:
             score += 10
             matched_criteria.append(
                 CriterionEvidence(
-                    criterion=req,
+                    criterion=str(req),
                     evidence=f"Product specifications explicitly highlight '{req}'.",
                 )
             )
-        else:
+        elif req_clean:
             caveats.append(f"Specification for '{req}' is not explicitly stated in merchant data.")
 
     # 3. Preferences Check
     for pref in preferences:
-        pref_clean = pref.strip().lower()
+        pref_clean = str(pref or "").strip().lower()
         if pref_clean and pref_clean in text_corpus:
             score += 5
             matched_criteria.append(
@@ -617,7 +617,7 @@ def _calculate_recommendation(
 
     # 4. Exclusions / Dealbreaker Check
     for exc in exclusions:
-        exc_clean = exc.strip().lower()
+        exc_clean = str(exc or "").strip().lower()
         if exc_clean and exc_clean in text_corpus:
             score -= 25
             caveats.append(f"Contains excluded feature or keyword '{exc}'.")
@@ -720,6 +720,14 @@ async def search_products(
         all_candidates.extend(matching_demo_products)
     all_candidates.extend(normalized_products)
 
+    if not all_candidates:
+        budget_cap = brief.budget.amount if (brief.budget and brief.budget.amount) else 250.0
+        all_candidates = _generate_grounded_fallback_products(
+            query=search_query,
+            category=brief.category,
+            budget_cap=budget_cap,
+        )
+
     # Deterministic ranking and recommendation generation
     budget_amt = brief.budget.amount if brief.budget else None
     ranked_items: list[RankedProductItem] = []
@@ -729,19 +737,22 @@ async def search_products(
         _SESSION_RECOMMENDATIONS[session.id] = {}
 
     for idx, prod in enumerate(all_candidates, start=1):
-        rec = _calculate_recommendation(
-            product=prod,
-            query=search_query,
-            category=brief.category,
-            budget_amount=budget_amt,
-            must_have=brief.must_have,
-            preferences=brief.preferences,
-            exclusions=brief.exclusions,
-            rank=idx,
-        )
-        ranked_items.append(RankedProductItem(product=prod, recommendation=rec))
-        _SESSION_PRODUCTS[session.id][prod.id] = prod
-        _SESSION_RECOMMENDATIONS[session.id][prod.id] = rec
+        try:
+            rec = _calculate_recommendation(
+                product=prod,
+                query=search_query,
+                category=brief.category,
+                budget_amount=budget_amt,
+                must_have=brief.must_have,
+                preferences=brief.preferences,
+                exclusions=brief.exclusions,
+                rank=idx,
+            )
+            ranked_items.append(RankedProductItem(product=prod, recommendation=rec))
+            _SESSION_PRODUCTS[session.id][prod.id] = prod
+            _SESSION_RECOMMENDATIONS[session.id][prod.id] = rec
+        except Exception as rec_err:
+            logger.warning("Failed to calculate recommendation for %s: %s", prod.id, rec_err)
 
     # Sort deterministically by fit score descending
     ranked_items.sort(key=lambda it: it.recommendation.fit_score, reverse=True)
