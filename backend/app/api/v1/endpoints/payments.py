@@ -192,8 +192,26 @@ async def capture_paypal_order(
                         captures = payments.get("captures", [])
                         if captures:
                             capture_id = captures[0].get("id", capture_id)
+                else:
+                    logger.error(
+                        "PayPal capture rejected with status %d: %s",
+                        res.status_code,
+                        res.text,
+                    )
+                    order_data["status"] = "FAILED"
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"PayPal order capture rejected: {res.text[:200]}",
+                    )
+        except HTTPException:
+            raise
         except Exception as exc:
-            logger.warning("PayPal capture call encountered error: %s", exc)
+            logger.error("PayPal capture connection failure: %s", exc)
+            order_data["status"] = "FAILED"
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Unable to complete PayPal order capture: {str(exc)}",
+            ) from exc
 
     order_data["status"] = verified_status
     order_data["capture_id"] = capture_id

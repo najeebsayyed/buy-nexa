@@ -9,7 +9,7 @@ export interface ProductMoney {
 
 export interface NormalizedProduct {
   id: string
-  provider: 'channel3' | string
+  provider: 'channel3' | 'buynexa' | string
   provider_product_id: string
   title: string
   description: string | null
@@ -18,7 +18,7 @@ export interface NormalizedProduct {
   retailer: string | null
   product_url: string | null
   availability: string | null
-  attributes: Record<string, string | number | boolean | null>
+  attributes: Record<string, unknown>
   fetched_at: string
 }
 

@@ -32,7 +32,7 @@ flowchart TD
 ### Trust & Security Boundaries
 
 1. **Anonymous Sessions**: Shoppers are issued cryptographically secure opaque tokens via `HttpOnly`, `SameSite=Lax` cookies. The server persists only SHA-256 hashes in the database.
-2. **Discovery vs. Checkout**: Channel3 products are external retailer listings that link out to third-party stores. PayPal checkout is exclusively for controlled BuyNexa Sandbox Store demo items.
+2. **Discovery vs. Checkout**: Channel3 products are external retailer listings that link out to third-party stores. When user shopping requirements match BuyNexa Store demo catalog items, those items are surfaced with a distinct `BuyNexa Store — PayPal Sandbox Checkout` badge and can be added directly to the cart for instant PayPal Sandbox checkout, while external offers retain direct retailer links.
 3. **Evidence-Grounded AI**: The AI extracts structured intent (`ShoppingBrief`) and summarizes factual product evidence. The model never sets prices, approves payments, or captures orders.
 4. **Server-Authoritative Pricing**: Cart totals and line items are calculated in integer minor units from database catalog pricing upon order creation.
 

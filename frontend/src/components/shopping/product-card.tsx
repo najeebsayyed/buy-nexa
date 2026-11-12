@@ -1,8 +1,9 @@
-import React from 'react'
+import React, { useState } from 'react'
 import type { RankedProductItem } from '../../types/product'
 import { formatPrice, getFitScoreDetails } from '../../lib/formatters'
 import { Button } from '../ui/button'
 import { useComparison } from '../../features/comparison/comparison-context'
+import { useCart } from '../../features/cart/cart-context'
 import {
   ExternalLink,
   CheckCircle2,
@@ -10,6 +11,8 @@ import {
   Scale,
   Sparkles,
   ShoppingBag,
+  ShieldCheck,
+  ArrowRight,
 } from 'lucide-react'
 
 export interface ProductCardProps {
@@ -19,11 +22,34 @@ export interface ProductCardProps {
 export const ProductCard: React.FC<ProductCardProps> = ({ item }) => {
   const { product, recommendation } = item
   const { toggleProduct, isSelected, count, maxAllowed } = useComparison()
+  const { addToCart, cart } = useCart()
   const compared = isSelected(product.id)
   const scoreDetails = getFitScoreDetails(recommendation.fit_score)
 
+  const [addingToCart, setAddingToCart] = useState(false)
+  const [addedSuccess, setAddedSuccess] = useState(false)
+
+  const isBuyNexaStore = product.provider === 'buynexa'
+  const inCartCount = isBuyNexaStore
+    ? cart?.items.find((it) => it.sku === product.provider_product_id)?.quantity || 0
+    : 0
+
   const handleCompareClick = () => {
     toggleProduct(product.id)
+  }
+
+  const handleAddToCart = async () => {
+    if (!isBuyNexaStore) return
+    setAddingToCart(true)
+    try {
+      await addToCart(product.provider_product_id, 1)
+      setAddedSuccess(true)
+      setTimeout(() => setAddedSuccess(false), 2500)
+    } catch (err) {
+      console.error('Failed to add product to cart', err)
+    } finally {
+      setAddingToCart(false)
+    }
   }
 
   const hasOutboundUrl = !!product.product_url
@@ -31,27 +57,32 @@ export const ProductCard: React.FC<ProductCardProps> = ({ item }) => {
   return (
     <div
       className={`rounded-3xl border bg-slate-900/60 p-5 sm:p-6 backdrop-blur-md transition-all duration-200 flex flex-col justify-between gap-5 ${
-        compared
+        isBuyNexaStore
+          ? 'border-amber-500/40 ring-1 ring-amber-500/20 bg-slate-900/80 shadow-lg shadow-amber-950/20'
+          : compared
           ? 'border-indigo-500/80 ring-2 ring-indigo-500/20 bg-slate-900/90 shadow-xl shadow-indigo-950/30'
           : 'border-slate-800/80 hover:border-slate-700/80 shadow-md'
       }`}
     >
       <div className="space-y-4">
-        {/* Top Header: Retailer + Fit Score */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700/60">
-              {product.retailer || 'External Merchant'}
-            </span>
-            {product.availability && (
-              <span className="text-[11px] text-slate-400 capitalize">
-                • {product.availability}
-              </span>
-            )}
-          </div>
+        {/* Top Header: Source Provider Badge + Fit Score */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          {isBuyNexaStore ? (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 text-xs font-semibold">
+              <ShieldCheck className="h-3.5 w-3.5 text-amber-400" />
+              <span>BuyNexa Store — PayPal Sandbox Checkout</span>
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700/60 text-xs font-mono font-medium">
+              <span>External Retailer — Channel3 Offer</span>
+              {product.retailer && (
+                <span className="text-slate-400 font-sans">• {product.retailer}</span>
+              )}
+            </div>
+          )}
 
           <div
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold ${scoreDetails.badgeBg}`}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold self-start sm:self-auto ${scoreDetails.badgeBg}`}
           >
             <Sparkles className="h-3.5 w-3.5" />
             <span>{recommendation.fit_score}% match</span>
@@ -68,7 +99,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ item }) => {
                 loading="lazy"
                 className="h-full w-full object-contain hover:scale-105 transition-transform duration-200"
                 onError={(e) => {
-                  // Fallback if image fails to load
                   ;(e.target as HTMLElement).style.display = 'none'
                 }}
               />
@@ -143,12 +173,41 @@ export const ProductCard: React.FC<ProductCardProps> = ({ item }) => {
           onClick={handleCompareClick}
           leftIcon={<Scale className="h-3.5 w-3.5" />}
           disabled={!compared && count >= maxAllowed}
-          className="rounded-xl"
+          className="rounded-xl text-xs"
         >
           {compared ? 'Selected for Compare' : 'Add to Compare'}
         </Button>
 
-        {hasOutboundUrl ? (
+        {isBuyNexaStore ? (
+          <div className="flex items-center gap-2">
+            {inCartCount > 0 && (
+              <a
+                href="/cart"
+                className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors px-1"
+              >
+                <span>In Cart ({inCartCount})</span>
+                <ArrowRight className="h-3 w-3" />
+              </a>
+            )}
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={handleAddToCart}
+              isLoading={addingToCart}
+              leftIcon={
+                addedSuccess ? (
+                  <CheckCircle2 className="h-3.5 w-3.5 text-slate-950" />
+                ) : (
+                  <ShoppingBag className="h-3.5 w-3.5 text-slate-950" />
+                )
+              }
+              className="rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-bold border-amber-300 shadow-md shadow-amber-950/30 text-xs"
+            >
+              {addedSuccess ? 'Added to Cart ✓' : 'Add to Cart • PayPal'}
+            </Button>
+          </div>
+        ) : hasOutboundUrl ? (
           <a
             href={product.product_url!}
             target="_blank"

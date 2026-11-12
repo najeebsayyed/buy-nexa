@@ -13,6 +13,7 @@ export const BriefRoute: React.FC<{ briefId: string }> = ({ briefId }) => {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const fetchBrief = useCallback(async () => {
     setLoading(true)
@@ -43,11 +44,12 @@ export const BriefRoute: React.FC<{ briefId: string }> = ({ briefId }) => {
 
   const handleSave = async (updated: Partial<ShoppingBrief>) => {
     setSaving(true)
+    setSaveError(null)
     try {
       const saved = await apiClient.briefs.update(briefId, updated)
       setBrief(saved)
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to save brief updates')
+      setSaveError(err instanceof Error ? err.message : 'Failed to save brief updates')
     } finally {
       setSaving(false)
     }
@@ -105,6 +107,23 @@ export const BriefRoute: React.FC<{ briefId: string }> = ({ briefId }) => {
 
   return (
     <div className="space-y-6 py-4">
+      {saveError && (
+        <div className="max-w-4xl mx-auto p-4 rounded-2xl bg-rose-950/40 border border-rose-500/30 text-rose-200 text-sm flex items-center justify-between gap-3 animate-fade-in">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-rose-400 shrink-0" />
+            <span>{saveError}</span>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setSaveError(null)}
+            className="text-xs text-rose-300 hover:text-white"
+          >
+            Dismiss
+          </Button>
+        </div>
+      )}
       <BriefEditor
         brief={brief}
         onSave={handleSave}

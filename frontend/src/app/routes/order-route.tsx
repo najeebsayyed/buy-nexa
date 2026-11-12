@@ -33,26 +33,7 @@ export const OrderRoute: React.FC<{ orderId: string }> = ({ orderId }) => {
       } else if (err instanceof Error) {
         setError(err.message)
       } else {
-        // Fallback demo order receipt preview for demonstration
-        setOrder({
-          order_id: orderId,
-          paypal_order_id: `PAYPAL_${orderId.substring(0, 8).toUpperCase()}`,
-          status: 'COMPLETED',
-          capture_id: `CAPTURE_${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
-          items: [
-            {
-              sku: 'BN-ANC-PRO',
-              title: 'BuyNexa Studio Pro ANC Wireless Headphones',
-              quantity: 1,
-              unit_price_minor: 12999,
-              line_total_minor: 12999,
-            },
-          ],
-          total_minor: 12999,
-          currency: 'USD',
-          created_at: new Date().toISOString(),
-          sandbox_disclosure: 'Sandbox demo — no real money and no fulfilment.',
-        })
+        setError('An unexpected error occurred while loading your order confirmation.')
       }
     } finally {
       setLoading(false)

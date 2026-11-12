@@ -128,6 +128,22 @@ export const ResultsRoute: React.FC<{ briefId: string }> = ({ briefId }) => {
             ))}
           </div>
         )}
+
+        {/* Commerce Origin Trust Disclosures */}
+        <div className="pt-3 border-t border-slate-800/80 flex flex-wrap items-center gap-x-6 gap-y-2 text-[11px] text-slate-400">
+          <div className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-amber-400 shrink-0" />
+            <span>
+              <strong className="text-amber-300">BuyNexa Store:</strong> Eligible for instant PayPal Sandbox Checkout
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-indigo-400 shrink-0" />
+            <span>
+              <strong className="text-indigo-300">External Retailers:</strong> Real-time Channel3 merchant offers (outbound link)
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Loading Skeleton */}

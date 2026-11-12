@@ -70,7 +70,7 @@ async def test_compare_endpoint(async_client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 async def test_search_endpoint(async_client: AsyncClient) -> None:
-    """Verify search returns ranked product recommendations for an active brief."""
+    """Verify search returns ranked product recommendations including relevant demo catalog items."""
     # 1. Create a shopping brief
     brief_res = await async_client.post(
         "/api/v1/briefs",
@@ -95,10 +95,16 @@ async def test_search_endpoint(async_client: AsyncClient) -> None:
     assert first_item["recommendation"]["fit_score"] >= 0
     assert first_item["recommendation"]["rank"] == 1
 
+    # Verify that relevant BuyNexa Demo Store headphones are considered alongside external results
+    providers = [it["product"]["provider"] for it in data["items"]]
+    assert "buynexa" in providers
+    buynexa_item = next(it for it in data["items"] if it["product"]["provider"] == "buynexa")
+    assert buynexa_item["product"]["retailer"] == "BuyNexa Store"
+
 
 @pytest.mark.asyncio
 async def test_search_endpoint_category_specific_laptop(async_client: AsyncClient) -> None:
-    """Verify searching for laptops returns laptops and never defaults to headphones."""
+    """Verify searching for laptops returns laptops and never forces demo store items."""
     # 1. Create a laptop shopping brief
     brief_res = await async_client.post(
         "/api/v1/briefs",
@@ -116,7 +122,104 @@ async def test_search_endpoint_category_specific_laptop(async_client: AsyncClien
     data = search_res.json()
     assert len(data["items"]) > 0
 
-    # Ensure none of the returned items are headphones
+    # Ensure none of the returned items are headphones or demo store products
     for item in data["items"]:
         title_lower = item["product"]["title"].lower()
         assert "headphone" not in title_lower, f"Found headphones in laptop search: {title_lower}"
+        assert item["product"]["provider"] != "buynexa"
+
+
+@pytest.mark.asyncio
+async def test_coherent_discovery_to_paypal_checkout_journey(async_client: AsyncClient) -> None:
+    """Verify Journey B: Brief -> Relevant Demo Recommendation -> Add to Cart -> PayPal Order -> Capture."""
+    # 1. User submits natural-language shopping brief
+    brief_res = await async_client.post(
+        "/api/v1/briefs",
+        json={"query": "Noise-cancelling headphones for flights under $150"},
+    )
+    assert brief_res.status_code == 201
+    brief_id = brief_res.json()["id"]
+
+    # 2. Discovery returns recommendations including BuyNexa Store demo headphones
+    search_res = await async_client.post(
+        "/api/v1/search",
+        json={"brief_id": brief_id, "limit": 5},
+    )
+    assert search_res.status_code == 200
+    search_data = search_res.json()
+    buynexa_items = [it for it in search_data["items"] if it["product"]["provider"] == "buynexa"]
+    assert len(buynexa_items) >= 1
+    selected_demo_prod = buynexa_items[0]["product"]
+    sku = selected_demo_prod["provider_product_id"]
+
+    # 3. Add to server-authoritative cart directly
+    cart_add_res = await async_client.post(
+        "/api/v1/cart",
+        json={"sku": sku, "quantity": 1},
+    )
+    assert cart_add_res.status_code == 200
+    cart_data = cart_add_res.json()
+    assert cart_data["item_count"] == 1
+    assert cart_data["total_minor"] == 12999
+
+    # 4. Create PayPal Orders v2 order server-side
+    create_order_res = await async_client.post(
+        "/api/v1/payments/paypal/orders",
+        json={"cart_id": "current_session_cart"},
+    )
+    assert create_order_res.status_code == 200
+    order_info = create_order_res.json()
+    local_order_id = order_info["local_order_id"]
+    paypal_order_id = order_info["paypal_order_id"]
+
+    # 5. Capture payment server-side (mocking successful PayPal approval & capture response)
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    mock_cap_res = MagicMock()
+    mock_cap_res.status_code = 201
+    mock_cap_res.json.return_value = {
+        "id": paypal_order_id,
+        "status": "COMPLETED",
+        "purchase_units": [
+            {
+                "payments": {
+                    "captures": [
+                        {
+                            "id": "CAP-COHERENT-TEST-999",
+                            "status": "COMPLETED",
+                            "amount": {"value": "129.99", "currency_code": "USD"},
+                        }
+                    ]
+                }
+            }
+        ],
+    }
+
+    mock_http_instance = MagicMock()
+    mock_http_instance.__aenter__.return_value = mock_http_instance
+    mock_http_instance.__aexit__.return_value = None
+    mock_http_instance.post = AsyncMock(return_value=mock_cap_res)
+
+    with (
+        patch(
+            "app.api.v1.endpoints.payments._get_paypal_access_token",
+            new_callable=AsyncMock,
+            return_value="fake_access_token",
+        ),
+        patch("app.api.v1.endpoints.payments.httpx.AsyncClient", return_value=mock_http_instance),
+    ):
+        capture_res = await async_client.post(
+            f"/api/v1/payments/paypal/orders/{local_order_id}/capture",
+            json={"paypal_order_id": paypal_order_id},
+        )
+        assert capture_res.status_code == 200
+        assert capture_res.json()["status"] == "COMPLETED"
+
+    # 6. Retrieve verified order confirmation
+    receipt_res = await async_client.get(f"/api/v1/orders/{local_order_id}")
+    assert receipt_res.status_code == 200
+    receipt_data = receipt_res.json()
+    assert receipt_data["status"] == "COMPLETED"
+    assert receipt_data["total_minor"] == 12999
+    assert len(receipt_data["items"]) == 1
+    assert receipt_data["items"][0]["sku"] == sku

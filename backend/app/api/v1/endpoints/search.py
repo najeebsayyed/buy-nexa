@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, get_shopper_session
+from app.api.v1.endpoints.catalog import DEMO_CATALOG_ITEMS
 from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.db.models.session import ShoppingSession
@@ -393,6 +394,160 @@ def _generate_grounded_fallback_products(
     ]
 
 
+def _match_demo_catalog_items(
+    category: str | None,
+    query: str,
+    use_cases: list[str],
+    budget_cap: float | None,
+) -> list[NormalizedProduct]:
+    """Find BuyNexa Demo Store products that genuinely match the shopper's requirements."""
+    import re
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    text_corpus = f"{category or ''} {query} {' '.join(use_cases)}".lower()
+    cat_lower = (category or "").lower()
+
+    # Incompatible product domains to guard against cross-domain matches
+    incompatible_audio = [
+        "laptop",
+        "computer",
+        "notebook",
+        "pc",
+        "macbook",
+        "monitor",
+        "display",
+        "screen",
+        "shoe",
+        "shoes",
+        "sneaker",
+        "sneakers",
+        "footwear",
+        "phone",
+        "smartphone",
+        "clothing",
+        "apparel",
+        "camera",
+    ]
+    is_non_audio_cat = any(
+        re.search(r"\b" + re.escape(w) + r"\b", cat_lower) for w in incompatible_audio
+    )
+
+    incompatible_desk = [
+        "shoe",
+        "shoes",
+        "sneaker",
+        "footwear",
+        "headphones",
+        "earbuds",
+        "earphones",
+        "audio",
+        "laptop",
+        "monitor",
+        "camera",
+        "phone",
+    ]
+    is_non_desk_cat = any(
+        re.search(r"\b" + re.escape(w) + r"\b", cat_lower) for w in incompatible_desk
+    )
+
+    def matches_any(keywords: list[str], text: str) -> bool:
+        return any(re.search(r"\b" + re.escape(k) + r"\b", text, re.IGNORECASE) for k in keywords)
+
+    matches: list[NormalizedProduct] = []
+
+    for item in DEMO_CATALOG_ITEMS:
+        sku = item.sku
+        price_val = item.price_minor / 100.0
+
+        # If user specified a budget cap and this item significantly exceeds it, skip
+        if budget_cap and price_val > budget_cap * 1.15:
+            continue
+
+        matched = False
+        if sku == "BN-ANC-PRO" and not is_non_audio_cat:
+            if matches_any(
+                [
+                    "headphone",
+                    "headphones",
+                    "over-ear",
+                    "over ear",
+                    "anc",
+                    "noise cancelling",
+                    "noise cancellation",
+                    "noise-cancelling",
+                ],
+                text_corpus,
+            ):
+                matched = True
+        elif sku == "BN-TRAVEL-BUDS" and not is_non_audio_cat:
+            if matches_any(
+                [
+                    "earbuds",
+                    "earbud",
+                    "earphone",
+                    "earphones",
+                    "in-ear",
+                    "in ear",
+                    "airpods",
+                    "travelbuds",
+                ],
+                text_corpus,
+            ):
+                matched = True
+        elif sku == "BN-CALL-HEADSET" and not is_non_audio_cat:
+            if matches_any(
+                ["headset", "call headset", "office headset", "work headset", "boom mic"],
+                text_corpus,
+            ) or (
+                matches_any(["office calls", "zoom call", "conference calls"], text_corpus)
+                and matches_any(["headset", "headphones", "audio", "mic"], text_corpus)
+            ):
+                matched = True
+        elif sku == "BN-DESK-PAD" and not is_non_desk_cat:
+            if matches_any(
+                [
+                    "desk mat",
+                    "desk pad",
+                    "mouse pad",
+                    "mousepad",
+                    "felt mat",
+                    "desk accessory",
+                    "wool felt",
+                    "desk blotter",
+                ],
+                text_corpus,
+            ):
+                matched = True
+
+        if matched:
+            matches.append(
+                NormalizedProduct(
+                    id=f"bn_{sku.lower()}",
+                    provider="buynexa",
+                    provider_product_id=sku,
+                    title=item.title,
+                    description=item.description,
+                    image_url=item.image_url,
+                    price=ProductMoney(
+                        amount=f"{price_val:.2f}",
+                        currency=item.currency,
+                    ),
+                    retailer="BuyNexa Store",
+                    product_url=None,  # First-party BuyNexa store item
+                    availability="in stock" if item.in_stock else "out of stock",
+                    attributes={
+                        "category": item.category,
+                        "features": item.features,
+                        "merchant_type": "BuyNexa Store",
+                        "checkout_method": "PayPal Sandbox Checkout",
+                    },
+                    fetched_at=now_iso,
+                )
+            )
+
+    return matches
+
+
 def _calculate_recommendation(
     product: NormalizedProduct,
     query: str,
@@ -551,6 +706,20 @@ async def search_products(
             budget_cap=budget_cap,
         )
 
+    # Discover relevant products from BuyNexa Demo Store
+    matching_demo_products = _match_demo_catalog_items(
+        category=brief.category,
+        query=brief.original_query,
+        use_cases=brief.use_cases,
+        budget_cap=brief.budget.amount if brief.budget else None,
+    )
+
+    # Combine matching demo store items with Channel3 retailer listings
+    all_candidates: list[NormalizedProduct] = []
+    if matching_demo_products:
+        all_candidates.extend(matching_demo_products)
+    all_candidates.extend(normalized_products)
+
     # Deterministic ranking and recommendation generation
     budget_amt = brief.budget.amount if brief.budget else None
     ranked_items: list[RankedProductItem] = []
@@ -559,7 +728,7 @@ async def search_products(
         _SESSION_PRODUCTS[session.id] = {}
         _SESSION_RECOMMENDATIONS[session.id] = {}
 
-    for idx, prod in enumerate(normalized_products, start=1):
+    for idx, prod in enumerate(all_candidates, start=1):
         rec = _calculate_recommendation(
             product=prod,
             query=search_query,
@@ -605,6 +774,25 @@ async def compare_products(
             products.append(session_prods[pid])
             if pid in session_recs:
                 recs[pid] = session_recs[pid]
+        elif pid.startswith("bn_"):
+            # Lookup in demo catalog
+            sku_to_find = pid[3:].upper()
+            demo_item = next((it for it in DEMO_CATALOG_ITEMS if it.sku == sku_to_find), None)
+            if demo_item:
+                p = NormalizedProduct(
+                    id=pid,
+                    provider="buynexa",
+                    provider_product_id=demo_item.sku,
+                    title=demo_item.title,
+                    price=ProductMoney(
+                        amount=f"{(demo_item.price_minor / 100):.2f}",
+                        currency=demo_item.currency,
+                    ),
+                    retailer="BuyNexa Store",
+                    attributes={"category": demo_item.category, "features": demo_item.features},
+                    fetched_at=datetime.now(timezone.utc).isoformat(),
+                )
+                products.append(p)
 
     # If products not in cache, provide schema-compliant placeholder objects
     if not products:
@@ -623,11 +811,18 @@ async def compare_products(
     # Build comparison rows
     price_vals = {p.id: f"${p.price.amount}" if p.price else "Not listed" for p in products}
     retailer_vals = {p.id: p.retailer or "Merchant" for p in products}
+    purchase_vals = {
+        p.id: "BuyNexa Store — PayPal Sandbox Checkout"
+        if p.provider == "buynexa"
+        else "External Retailer — Channel3 Offer"
+        for p in products
+    }
     fit_vals = {p.id: f"{recs[p.id].fit_score}% match" if p.id in recs else "N/A" for p in products}
 
     rows = [
         ComparisonRow(label="Price", category="overview", values=price_vals),
         ComparisonRow(label="Retailer", category="overview", values=retailer_vals),
+        ComparisonRow(label="Purchase Option", category="overview", values=purchase_vals),
         ComparisonRow(label="Fit Score", category="overview", values=fit_vals),
     ]
 
