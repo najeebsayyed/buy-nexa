@@ -55,5 +55,7 @@ async def get_shopper_session(
         extra={"extra_data": {"session_id": new_session.id}},
     )
     return new_session
+
+
 # Alias for dependency consistency
 get_db = get_db_session

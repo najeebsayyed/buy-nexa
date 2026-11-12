@@ -62,4 +62,3 @@ settings = Settings()
 def get_settings() -> Settings:
     """Return the cached application settings instance."""
     return settings
-
