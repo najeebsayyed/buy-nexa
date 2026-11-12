@@ -49,12 +49,12 @@ export const CompareRoute: React.FC = () => {
   if (selectedProductIds.length === 0) {
     return (
       <div className="max-w-md mx-auto text-center py-20 space-y-5">
-        <div className="p-4 rounded-3xl bg-slate-900 border border-slate-800 text-indigo-400 w-fit mx-auto shadow-lg shadow-indigo-950/20">
-          <Scale className="h-8 w-8" />
+        <div className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 text-indigo-400 w-fit mx-auto shadow-md">
+          <Scale className="h-7 w-7" />
         </div>
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <h1 className="text-2xl font-bold text-white">No Products Selected</h1>
-          <p className="text-sm text-slate-400 leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
             Select up to 3 products from any search recommendation screen to compare specifications, budget fit, and trade-offs side by side.
           </p>
         </div>

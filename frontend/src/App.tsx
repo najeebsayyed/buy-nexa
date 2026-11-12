@@ -10,6 +10,8 @@ import { DemoStoreRoute } from './app/routes/demo-store-route'
 import { CartRoute } from './app/routes/cart-route'
 import { CheckoutRoute } from './app/routes/checkout-route'
 import { OrderRoute } from './app/routes/order-route'
+import { PrivacyRoute } from './app/routes/privacy-route'
+import { TermsRoute } from './app/routes/terms-route'
 import { Button } from './components/ui/button'
 import { AlertCircle, ArrowLeft } from 'lucide-react'
 
@@ -33,6 +35,10 @@ function RouteContent() {
       return <CheckoutRoute />
     case 'order_confirmation':
       return <OrderRoute orderId={currentRoute.params.orderId} />
+    case 'privacy':
+      return <PrivacyRoute />
+    case 'terms':
+      return <TermsRoute />
     default:
       return (
         <div className="max-w-md mx-auto text-center py-20 space-y-4">

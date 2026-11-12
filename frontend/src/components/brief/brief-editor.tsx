@@ -1,16 +1,16 @@
 import React, { useState } from 'react'
 import type { Budget, ShoppingBrief } from '../../types/brief'
-import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import {
-  Sparkles,
   ArrowRight,
   Plus,
   Tag,
   Check,
-  Sliders,
-  ShieldCheck,
+  CheckCircle2,
+  X,
+  Heart,
+  Target,
 } from 'lucide-react'
 
 export interface BriefEditorProps {
@@ -33,7 +33,7 @@ export const BriefEditor: React.FC<BriefEditorProps> = ({
   const [budgetAmount, setBudgetAmount] = useState<string>(
     brief.budget ? String(brief.budget.amount) : ''
   )
-  const [budgetCurrency, setBudgetCurrency] = useState(brief.budget?.currency || 'USD')
+  const budgetCurrency = brief.budget?.currency || 'USD'
   const [budgetMode, setBudgetMode] = useState<'hard_limit' | 'target'>(
     brief.budget?.mode || 'hard_limit'
   )
@@ -47,12 +47,8 @@ export const BriefEditor: React.FC<BriefEditorProps> = ({
   const [exclusions, setExclusions] = useState<string[]>(brief.exclusions || [])
   const [newExclusion, setNewExclusion] = useState('')
 
-  const [preferredBrands, setPreferredBrands] = useState<string[]>(brief.preferred_brands || [])
-  const [newBrand, setNewBrand] = useState('')
-
   const [savedSuccess, setSavedSuccess] = useState(false)
 
-  // Add tag handlers
   const handleAddTag = (
     list: string[],
     setList: React.Dispatch<React.SetStateAction<string[]>>,
@@ -92,25 +88,27 @@ export const BriefEditor: React.FC<BriefEditorProps> = ({
       must_have: mustHave,
       preferences,
       exclusions,
-      preferred_brands: preferredBrands,
     })
 
     setSavedSuccess(true)
-    setTimeout(() => setSavedSuccess(false), 2500)
+    setTimeout(() => setSavedSuccess(false), 2000)
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-8">
-      {/* Top Header Card */}
-      <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 sm:p-8 backdrop-blur-md shadow-xl space-y-4">
+    <div className="w-full max-w-4xl mx-auto space-y-6">
+      {/* Header Banner */}
+      <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-6 sm:p-8 backdrop-blur-md shadow-lg space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <span className="text-[11px] font-mono uppercase tracking-wider text-indigo-400 font-semibold px-2.5 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20">
-              Verified Shopping Brief
+          <div className="space-y-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-indigo-400 px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20">
+              Shopping Criteria
             </span>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white mt-2">
-              Review and Refine Your Criteria
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white mt-1">
+              Review & Refine Criteria
             </h1>
+            <p className="text-xs sm:text-sm text-slate-400">
+              Fine-tune your constraints before BuyNexa searches and ranks matching products.
+            </p>
           </div>
 
           <Button
@@ -119,119 +117,92 @@ export const BriefEditor: React.FC<BriefEditorProps> = ({
             size="lg"
             onClick={onProceed}
             rightIcon={<ArrowRight className="h-4 w-4" />}
-            className="w-full sm:w-auto shadow-lg shadow-indigo-600/30"
+            className="w-full sm:w-auto shadow-md"
           >
-            Find My Best Options
+            Find Matching Products
           </Button>
         </div>
 
-        {/* Original Query Display */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4 space-y-1">
-          <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-            Original Request
+        {/* Original Query Recap */}
+        <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-3.5 space-y-1">
+          <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+            Your Initial Request
           </span>
-          <p className="text-sm sm:text-base text-slate-200 font-medium italic">
+          <p className="text-xs sm:text-sm text-slate-200 font-medium">
             "{brief.original_query}"
           </p>
         </div>
       </div>
 
-      {/* Editable Fields Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Criteria Sections Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* Category & Budget Card */}
-        <div className="rounded-3xl border border-slate-800 bg-slate-900/50 p-6 space-y-5">
-          <div className="flex items-center gap-2 pb-3 border-b border-slate-800">
+        <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-5 space-y-4">
+          <div className="flex items-center gap-2 pb-2.5 border-b border-slate-800/80">
             <Tag className="h-4 w-4 text-indigo-400" />
-            <h2 className="font-semibold text-white text-base">Category & Budget</h2>
+            <h2 className="font-semibold text-white text-sm">Product Category</h2>
           </div>
 
           <Input
-            label="Product Category"
+            label="Identified Category"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            placeholder="e.g. Wireless Noise-Cancelling Headphones"
-            hint="Targeted product classification for catalog search"
+            placeholder="e.g. Wireless noise-cancelling headphones"
           />
 
-          <div className="space-y-2">
+          <div className="space-y-2 pt-1">
             <label className="block text-xs font-medium text-slate-300">
-              Budget Constraint
+              Budget & Limit
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <div className="relative sm:col-span-2">
-                <span className="absolute left-3.5 top-2.5 text-slate-500 text-sm">$</span>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-2.5 text-xs text-slate-500 font-mono">
+                  $
+                </span>
                 <input
                   type="number"
-                  min="0"
-                  step="0.01"
                   value={budgetAmount}
                   onChange={(e) => setBudgetAmount(e.target.value)}
-                  placeholder="150.00"
-                  className="w-full pl-8 pr-3 py-2 rounded-xl text-sm bg-slate-900/80 border border-slate-800 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="e.g. 150"
+                  className="w-full pl-7 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
 
               <select
-                value={budgetCurrency}
-                onChange={(e) => setBudgetCurrency(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl text-sm bg-slate-900/80 border border-slate-800 text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                aria-label="Currency"
+                value={budgetMode}
+                onChange={(e) => setBudgetMode(e.target.value as 'hard_limit' | 'target')}
+                className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               >
-                <option value="USD">USD ($)</option>
-                <option value="EUR">EUR (€)</option>
-                <option value="GBP">GBP (£)</option>
-                <option value="CAD">CAD ($)</option>
+                <option value="hard_limit">Hard Limit (Max)</option>
+                <option value="target">Target Budget</option>
               </select>
-            </div>
-
-            <div className="flex items-center gap-4 pt-1">
-              <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-                <input
-                  type="radio"
-                  name="budgetMode"
-                  checked={budgetMode === 'hard_limit'}
-                  onChange={() => setBudgetMode('hard_limit')}
-                  className="text-indigo-600 focus:ring-indigo-500 bg-slate-900 border-slate-700"
-                />
-                <span>Hard Limit (Must not exceed)</span>
-              </label>
-
-              <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-                <input
-                  type="radio"
-                  name="budgetMode"
-                  checked={budgetMode === 'target'}
-                  onChange={() => setBudgetMode('target')}
-                  className="text-indigo-600 focus:ring-indigo-500 bg-slate-900 border-slate-700"
-                />
-                <span>Target Guidance (Flexible)</span>
-              </label>
             </div>
           </div>
         </div>
 
-        {/* Intended Use Cases */}
-        <div className="rounded-3xl border border-slate-800 bg-slate-900/50 p-6 space-y-4">
-          <div className="flex items-center gap-2 pb-3 border-b border-slate-800">
-            <Sliders className="h-4 w-4 text-violet-400" />
-            <h2 className="font-semibold text-white text-base">Intended Use Cases</h2>
+        {/* Use Cases */}
+        <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-5 space-y-4">
+          <div className="flex items-center gap-2 pb-2.5 border-b border-slate-800/80">
+            <Target className="h-4 w-4 text-violet-400" />
+            <h2 className="font-semibold text-white text-sm">Intended Use Cases</h2>
           </div>
 
-          <div className="flex flex-wrap gap-2 min-h-[44px]">
-            {useCases.length === 0 ? (
-              <span className="text-xs text-slate-500 italic">No specific use cases added yet.</span>
-            ) : (
-              useCases.map((tag, idx) => (
-                <Badge
-                  key={idx}
-                  variant="brand"
-                  size="md"
-                  onRemove={() => handleRemoveTag(useCases, setUseCases, idx)}
+          <div className="flex flex-wrap gap-1.5 min-h-[44px]">
+            {useCases.map((uc, idx) => (
+              <span
+                key={idx}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700/60 text-xs text-slate-200"
+              >
+                <span>{uc}</span>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveTag(useCases, setUseCases, idx)}
+                  className="hover:text-rose-400 transition-colors"
                 >
-                  {tag}
-                </Badge>
-              ))
-            )}
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
           </div>
 
           <div className="flex gap-2">
@@ -245,8 +216,8 @@ export const BriefEditor: React.FC<BriefEditorProps> = ({
                   handleAddTag(useCases, setUseCases, newUseCase, setNewUseCase)
                 }
               }}
-              placeholder="Add use case (e.g. Travel, Gym, Office)..."
-              className="flex-1 px-3 py-1.5 rounded-xl text-xs bg-slate-900/80 border border-slate-800 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="Add use case (e.g. Travel, Gym, Calls)..."
+              className="flex-1 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
             <Button
               type="button"
@@ -260,31 +231,29 @@ export const BriefEditor: React.FC<BriefEditorProps> = ({
           </div>
         </div>
 
-        {/* Must-Have Features (Non-negotiable) */}
-        <div className="rounded-3xl border border-slate-800 bg-slate-900/50 p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-emerald-400" />
-              <h2 className="font-semibold text-white text-base">Must-Have Features</h2>
-            </div>
-            <span className="text-[10px] font-mono text-emerald-400 uppercase">Non-negotiable</span>
+        {/* Must-Haves */}
+        <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-5 space-y-4">
+          <div className="flex items-center gap-2 pb-2.5 border-b border-slate-800/80">
+            <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+            <h2 className="font-semibold text-white text-sm">Must-Have Features</h2>
           </div>
 
-          <div className="flex flex-wrap gap-2 min-h-[44px]">
-            {mustHave.length === 0 ? (
-              <span className="text-xs text-slate-500 italic">No must-have requirements added.</span>
-            ) : (
-              mustHave.map((tag, idx) => (
-                <Badge
-                  key={idx}
-                  variant="success"
-                  size="md"
-                  onRemove={() => handleRemoveTag(mustHave, setMustHave, idx)}
+          <div className="flex flex-wrap gap-1.5 min-h-[44px]">
+            {mustHave.map((item, idx) => (
+              <span
+                key={idx}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-300 font-medium"
+              >
+                <span>✓ {item}</span>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveTag(mustHave, setMustHave, idx)}
+                  className="hover:text-rose-400 transition-colors"
                 >
-                  {tag}
-                </Badge>
-              ))
-            )}
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
           </div>
 
           <div className="flex gap-2">
@@ -298,8 +267,8 @@ export const BriefEditor: React.FC<BriefEditorProps> = ({
                   handleAddTag(mustHave, setMustHave, newMustHave, setNewMustHave)
                 }
               }}
-              placeholder="e.g. Active Noise Cancellation, Bluetooth 5.3..."
-              className="flex-1 px-3 py-1.5 rounded-xl text-xs bg-slate-900/80 border border-slate-800 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="Add required feature..."
+              className="flex-1 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
             <Button
               type="button"
@@ -313,188 +282,139 @@ export const BriefEditor: React.FC<BriefEditorProps> = ({
           </div>
         </div>
 
-        {/* Preferences (Nice-to-have) */}
-        <div className="rounded-3xl border border-slate-800 bg-slate-900/50 p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-sky-400" />
-              <h2 className="font-semibold text-white text-base">Secondary Preferences</h2>
+        {/* Preferences & Exclusions */}
+        <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-5 space-y-4">
+          <div className="flex items-center gap-2 pb-2.5 border-b border-slate-800/80">
+            <Heart className="h-4 w-4 text-indigo-400" />
+            <h2 className="font-semibold text-white text-sm">Preferences & Exclusions</h2>
+          </div>
+
+          {/* Preferences */}
+          <div className="space-y-1.5">
+            <span className="text-[11px] text-slate-400 font-medium">Preferences (Nice to have):</span>
+            <div className="flex flex-wrap gap-1.5">
+              {preferences.map((pref, idx) => (
+                <span
+                  key={idx}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-300"
+                >
+                  <span>{pref}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveTag(preferences, setPreferences, idx)}
+                    className="hover:text-rose-400"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
             </div>
-            <span className="text-[10px] font-mono text-slate-400 uppercase">Nice-to-have</span>
+            <div className="flex gap-2 pt-1">
+              <input
+                type="text"
+                value={newPreference}
+                onChange={(e) => setNewPreference(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    handleAddTag(preferences, setPreferences, newPreference, setNewPreference)
+                  }
+                }}
+                placeholder="Add preference (e.g. Lightweight, USB-C)..."
+                className="flex-1 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => handleAddTag(preferences, setPreferences, newPreference, setNewPreference)}
+                leftIcon={<Plus className="h-3.5 w-3.5" />}
+              >
+                Add
+              </Button>
+            </div>
           </div>
 
-          <div className="flex flex-wrap gap-2 min-h-[44px]">
-            {preferences.length === 0 ? (
-              <span className="text-xs text-slate-500 italic">No optional preferences listed.</span>
-            ) : (
-              preferences.map((tag, idx) => (
-                <Badge
+          {/* Exclusions */}
+          <div className="space-y-1.5 pt-2 border-t border-slate-800/80">
+            <span className="text-[11px] text-slate-400 font-medium">Exclusions (Dealbreakers):</span>
+            <div className="flex flex-wrap gap-1.5">
+              {exclusions.map((exc, idx) => (
+                <span
                   key={idx}
-                  variant="neutral"
-                  size="md"
-                  onRemove={() => handleRemoveTag(preferences, setPreferences, idx)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300"
                 >
-                  {tag}
-                </Badge>
-              ))
-            )}
-          </div>
-
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newPreference}
-              onChange={(e) => setNewPreference(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  handleAddTag(preferences, setPreferences, newPreference, setNewPreference)
-                }
-              }}
-              placeholder="e.g. Foldable design, multipoint pairing..."
-              className="flex-1 px-3 py-1.5 rounded-xl text-xs bg-slate-900/80 border border-slate-800 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => handleAddTag(preferences, setPreferences, newPreference, setNewPreference)}
-              leftIcon={<Plus className="h-3.5 w-3.5" />}
-            >
-              Add
-            </Button>
-          </div>
-        </div>
-
-        {/* Exclusions & Dealbreakers */}
-        <div className="rounded-3xl border border-slate-800 bg-slate-900/50 p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-            <h2 className="font-semibold text-white text-base">Exclusions & Dealbreakers</h2>
-            <span className="text-[10px] font-mono text-rose-400 uppercase">Avoid</span>
-          </div>
-
-          <div className="flex flex-wrap gap-2 min-h-[44px]">
-            {exclusions.length === 0 ? (
-              <span className="text-xs text-slate-500 italic">No exclusions specified.</span>
-            ) : (
-              exclusions.map((tag, idx) => (
-                <Badge
-                  key={idx}
-                  variant="danger"
-                  size="md"
-                  onRemove={() => handleRemoveTag(exclusions, setExclusions, idx)}
-                >
-                  {tag}
-                </Badge>
-              ))
-            )}
-          </div>
-
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newExclusion}
-              onChange={(e) => setNewExclusion(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  handleAddTag(exclusions, setExclusions, newExclusion, setNewExclusion)
-                }
-              }}
-              placeholder="e.g. Heavy over-ear models, micro-USB..."
-              className="flex-1 px-3 py-1.5 rounded-xl text-xs bg-slate-900/80 border border-slate-800 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => handleAddTag(exclusions, setExclusions, newExclusion, setNewExclusion)}
-              leftIcon={<Plus className="h-3.5 w-3.5" />}
-            >
-              Add
-            </Button>
-          </div>
-        </div>
-
-        {/* Preferred Brands */}
-        <div className="rounded-3xl border border-slate-800 bg-slate-900/50 p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-            <h2 className="font-semibold text-white text-base">Preferred Brands</h2>
-            <span className="text-[10px] font-mono text-indigo-400 uppercase">Affinities</span>
-          </div>
-
-          <div className="flex flex-wrap gap-2 min-h-[44px]">
-            {preferredBrands.length === 0 ? (
-              <span className="text-xs text-slate-500 italic">No specific brands preferred.</span>
-            ) : (
-              preferredBrands.map((tag, idx) => (
-                <Badge
-                  key={idx}
-                  variant="brand"
-                  size="md"
-                  onRemove={() => handleRemoveTag(preferredBrands, setPreferredBrands, idx)}
-                >
-                  {tag}
-                </Badge>
-              ))
-            )}
-          </div>
-
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newBrand}
-              onChange={(e) => setNewBrand(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  handleAddTag(preferredBrands, setPreferredBrands, newBrand, setNewBrand)
-                }
-              }}
-              placeholder="e.g. Sony, Bose, Sennheiser, Anker..."
-              className="flex-1 px-3 py-1.5 rounded-xl text-xs bg-slate-900/80 border border-slate-800 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => handleAddTag(preferredBrands, setPreferredBrands, newBrand, setNewBrand)}
-              leftIcon={<Plus className="h-3.5 w-3.5" />}
-            >
-              Add
-            </Button>
+                  <span>✕ {exc}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveTag(exclusions, setExclusions, idx)}
+                    className="hover:text-rose-400"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2 pt-1">
+              <input
+                type="text"
+                value={newExclusion}
+                onChange={(e) => setNewExclusion(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    handleAddTag(exclusions, setExclusions, newExclusion, setNewExclusion)
+                  }
+                }}
+                placeholder="Add exclusion to avoid..."
+                className="flex-1 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => handleAddTag(exclusions, setExclusions, newExclusion, setNewExclusion)}
+                leftIcon={<Plus className="h-3.5 w-3.5" />}
+              >
+                Add
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Bottom Save & Proceed Actions */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/80 border border-slate-800">
-        <div className="flex items-center gap-2">
+      {/* Save Action Bar */}
+      <div className="flex items-center justify-between p-4 rounded-xl border border-slate-800 bg-slate-900/60">
+        <span className="text-xs text-slate-400">
+          {savedSuccess ? (
+            <span className="text-emerald-400 flex items-center gap-1.5 font-medium">
+              <Check className="h-4 w-4" /> Criteria saved successfully
+            </span>
+          ) : (
+            'Updates will apply to your product recommendations'
+          )}
+        </span>
+
+        <div className="flex items-center gap-3">
           <Button
             type="button"
             variant="secondary"
-            size="md"
+            size="sm"
             onClick={handleSave}
             isLoading={isSaving}
-            leftIcon={savedSuccess ? <Check className="h-4 w-4 text-emerald-400" /> : undefined}
           >
-            {savedSuccess ? 'Brief Saved' : 'Save Changes'}
+            Save Updates
           </Button>
-          {savedSuccess && (
-            <span className="text-xs text-emerald-400 font-medium">Changes synced to backend</span>
-          )}
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            onClick={onProceed}
+            rightIcon={<ArrowRight className="h-4 w-4" />}
+          >
+            Find Products
+          </Button>
         </div>
-
-        <Button
-          type="button"
-          variant="primary"
-          size="md"
-          onClick={onProceed}
-          rightIcon={<ArrowRight className="h-4 w-4" />}
-          className="w-full sm:w-auto"
-        >
-          Find My Best Options
-        </Button>
       </div>
     </div>
   )

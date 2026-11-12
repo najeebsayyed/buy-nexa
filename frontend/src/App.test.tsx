@@ -77,31 +77,31 @@ describe('BuyNexa Phase 2 Application', () => {
   it('renders BuyNexa header, wordmark, and primary navigation', () => {
     render(<App />)
     expect(screen.getAllByText(/BuyNexa/i).length).toBeGreaterThan(0)
-    expect(screen.getByRole('link', { name: /Discover/i })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Compare/i })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Demo Store/i })).toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: /Discover/i })[0]).toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: /Compare/i })[0]).toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: /Demo Store/i })[0]).toBeInTheDocument()
   })
 
   it('renders official hero headline and prompt composer', () => {
     render(<App />)
     expect(
-      screen.getByRole('heading', { name: /Shop by what you need/i })
+      screen.getByRole('heading', { name: /Tell us what you need/i })
     ).toBeInTheDocument()
     expect(
-      screen.getByPlaceholderText(/Describe what you need, your budget/i)
+      screen.getByPlaceholderText(/Tell us what you're looking for, budget/i)
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('button', { name: /Create Shopping Brief/i })
+      screen.getByRole('button', { name: /Find Products/i })
     ).toBeInTheDocument()
   })
 
   it('populates prompt composer when an example card is selected', () => {
     render(<App />)
-    const exampleButton = screen.getByText(/Headphones for travel/i)
+    const exampleButton = screen.getByText(/Travel Headphones/i)
     fireEvent.click(exampleButton)
 
     const textarea = screen.getByPlaceholderText(
-      /Describe what you need, your budget/i
+      /Tell us what you're looking for, budget/i
     ) as HTMLTextAreaElement
     expect(textarea.value).toContain('wireless noise-cancelling headphones under $150')
   })
@@ -109,41 +109,38 @@ describe('BuyNexa Phase 2 Application', () => {
   it('submits shopping brief and displays intentional extraction loading state', async () => {
     render(<App />)
     const textarea = screen.getByPlaceholderText(
-      /Describe what you need, your budget/i
+      /Tell us what you're looking for, budget/i
     )
     fireEvent.change(textarea, {
       target: { value: 'Ergonomic 27-inch 4K monitor under $400 for programming' },
     })
 
-    const submitBtn = screen.getByRole('button', { name: /Create Shopping Brief/i })
+    const submitBtn = screen.getByRole('button', { name: /Find Products/i })
     fireEvent.click(submitBtn)
 
     expect(screen.getByText(/Analyzing Requirements.../i)).toBeInTheDocument()
 
-    // Verifies transition into brief review
+    // Verifies transition into criteria review
     await waitFor(() => {
-      expect(screen.getByText(/Review and Refine Your Criteria/i)).toBeInTheDocument()
+      expect(screen.getByText(/Review & Refine Criteria/i)).toBeInTheDocument()
     })
   })
 
-  it('navigates to the Demo Store and displays Sandbox disclosures', async () => {
+  it('navigates to the Demo Store and displays collection items', async () => {
     render(<App />)
-    const demoStoreLink = screen.getByRole('link', { name: /Demo Store/i })
+    const demoStoreLink = screen.getAllByRole('link', { name: /Demo Store/i })[0]
     fireEvent.click(demoStoreLink)
 
     await waitFor(() => {
-      expect(screen.getByText(/BuyNexa Sandbox Store/i)).toBeInTheDocument()
-      expect(
-        screen.getAllByText(/Sandbox demo — no real money and no fulfilment/i).length
-      ).toBeGreaterThan(0)
+      expect(screen.getByText(/BuyNexa Store Collection/i)).toBeInTheDocument()
     })
   })
 
-  it('renders trusted commerce footer with hackathon and architecture disclosures', () => {
+  it('renders clean commercial SaaS footer with platform and legal links', () => {
     render(<App />)
-    expect(screen.getByText(/PayPal AI Hackathon 2026/i)).toBeInTheDocument()
-    expect(
-      screen.getByText(/Zero client-side payment tampering/i)
-    ).toBeInTheDocument()
+    expect(screen.getByText(/Your AI shopping copilot\./i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Privacy Policy/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Terms of Service/i })).toBeInTheDocument()
+    expect(screen.getByText(/© 2026 BuyNexa\. All rights reserved\./i)).toBeInTheDocument()
   })
 })

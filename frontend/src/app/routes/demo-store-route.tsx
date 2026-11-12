@@ -7,7 +7,6 @@ import type { DemoCatalogItem } from '../../types/cart'
 import { Button } from '../../components/ui/button'
 import { Skeleton } from '../../components/ui/skeleton'
 import {
-  Info,
   Check,
   Plus,
   ArrowRight,
@@ -103,16 +102,19 @@ export const DemoStoreRoute: React.FC = () => {
 
   return (
     <div className="space-y-10 py-2">
-      {/* Sandbox Disclosure Header */}
-      <div className="rounded-3xl border border-amber-500/30 bg-amber-500/5 p-6 sm:p-8 backdrop-blur-md shadow-xl space-y-4">
+      {/* Storefront Header */}
+      <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-6 sm:p-8 backdrop-blur-md shadow-lg space-y-3">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="space-y-1">
-            <span className="text-[11px] font-mono text-amber-400 uppercase tracking-wider font-semibold px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20">
-              Controlled Demo Catalog
+            <span className="text-[11px] font-semibold text-indigo-400 uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20">
+              Demo Store
             </span>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white mt-1">
-              BuyNexa Sandbox Store
+              BuyNexa Store Collection
             </h1>
+            <p className="text-xs sm:text-sm text-slate-400 max-w-xl">
+              Curated audio essentials and desk accessories engineered for focus, daily comfort, and productivity.
+            </p>
           </div>
 
           {itemCount > 0 && (
@@ -122,107 +124,92 @@ export const DemoStoreRoute: React.FC = () => {
               size="md"
               onClick={() => navigate('/cart')}
               rightIcon={<ArrowRight className="h-4 w-4" />}
-              className="w-full sm:w-auto shadow-lg shadow-indigo-600/30"
+              className="w-full sm:w-auto shadow-md"
             >
               View Cart ({itemCount})
             </Button>
           )}
-        </div>
-
-        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-xs text-amber-200 leading-relaxed flex items-start gap-3">
-          <Info className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <p className="font-semibold text-amber-100">
-              Sandbox demo — no real money and no fulfilment.
-            </p>
-            <p className="text-amber-300/80">
-              This store contains controlled demonstration catalog items used to test the PayPal Sandbox checkout flow. All prices and orders are verified server-side.
-            </p>
-          </div>
         </div>
       </div>
 
       {/* Catalog Grid */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Skeleton className="h-96 rounded-3xl" />
-          <Skeleton className="h-96 rounded-3xl" />
-          <Skeleton className="h-96 rounded-3xl" />
-          <Skeleton className="h-96 rounded-3xl" />
+          <Skeleton className="h-96 rounded-2xl" />
+          <Skeleton className="h-96 rounded-2xl" />
+          <Skeleton className="h-96 rounded-2xl" />
+          <Skeleton className="h-96 rounded-2xl" />
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {items.map((item) => {
-            const isJustAdded = addedSku === item.sku
+          {items.map((prod) => {
+            const isAdded = addedSku === prod.sku
             return (
               <div
-                key={item.sku}
-                className="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 backdrop-blur-md flex flex-col justify-between gap-4 hover:border-slate-700/80 transition-all duration-200 shadow-md"
+                key={prod.sku}
+                className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-5 flex flex-col justify-between gap-5 hover:border-slate-700/80 transition-all shadow-sm"
               >
-                <div className="space-y-3">
-                  {/* Image Container */}
-                  <div className="h-48 w-full rounded-2xl bg-slate-950 border border-slate-800/80 overflow-hidden flex items-center justify-center p-3 relative group">
+                <div className="space-y-4">
+                  {/* Media */}
+                  <div className="h-48 rounded-xl bg-slate-950 border border-slate-800 p-3 overflow-hidden flex items-center justify-center">
                     <img
-                      src={item.image_url}
-                      alt={item.title}
+                      src={prod.image_url}
+                      alt={prod.title}
                       loading="lazy"
-                      className="h-full w-full object-contain group-hover:scale-105 transition-transform duration-200"
+                      className="h-full w-full object-contain hover:scale-105 transition-transform duration-200"
                     />
-                    <span className="absolute top-2.5 right-2.5 text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-900/90 text-slate-300 border border-slate-800">
-                      {item.sku}
-                    </span>
                   </div>
 
-                  {/* Title & Price */}
-                  <div>
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-indigo-400">
-                      {item.category}
-                    </span>
-                    <h3 className="font-bold text-white text-base line-clamp-2 mt-0.5">
-                      {item.title}
+                  {/* Metadata */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono">
+                      <span>{prod.category}</span>
+                      <span className="text-emerald-400 font-sans font-medium">In Stock</span>
+                    </div>
+
+                    <h3 className="font-bold text-white text-sm line-clamp-2 leading-snug">
+                      {prod.title}
                     </h3>
+
+                    <div className="text-lg font-extrabold text-indigo-400 pt-1">
+                      {formatMinorMoney(prod.price_minor, prod.currency)}
+                    </div>
+
+                    <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                      {prod.description}
+                    </p>
                   </div>
 
-                  <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
-                    {item.description}
-                  </p>
-
-                  {/* Feature Badges */}
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {item.features.slice(0, 2).map((feat, idx) => (
-                      <span
-                        key={idx}
-                        className="text-[10px] px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 border border-slate-700/60"
-                      >
-                        {feat}
-                      </span>
-                    ))}
+                  {/* Features */}
+                  <div className="pt-2 border-t border-slate-800/80">
+                    <ul className="space-y-1 text-xs text-slate-400">
+                      {prod.features.slice(0, 3).map((f, idx) => (
+                        <li key={idx} className="flex items-center gap-1.5">
+                          <Check className="h-3 w-3 text-indigo-400 shrink-0" />
+                          <span>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 </div>
 
-                {/* Price & Add to Cart */}
-                <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
-                  <div className="text-lg font-extrabold text-white">
-                    {formatMinorMoney(item.price_minor, item.currency)}
-                  </div>
-
-                  <Button
-                    type="button"
-                    variant={isJustAdded ? 'primary' : 'secondary'}
-                    size="sm"
-                    onClick={() => handleAddToCart(item.sku)}
-                    leftIcon={
-                      isJustAdded ? (
-                        <Check className="h-3.5 w-3.5 text-white" />
-                      ) : (
-                        <Plus className="h-3.5 w-3.5" />
-                      )
-                    }
-                    className="rounded-xl font-semibold text-xs"
-                  >
-                    {isJustAdded ? 'Added!' : 'Add to Cart'}
-                  </Button>
-                </div>
+                {/* Add to Cart Button */}
+                <Button
+                  type="button"
+                  variant={isAdded ? 'secondary' : 'primary'}
+                  size="sm"
+                  onClick={() => handleAddToCart(prod.sku)}
+                  leftIcon={
+                    isAdded ? (
+                      <Check className="h-3.5 w-3.5 text-emerald-400" />
+                    ) : (
+                      <Plus className="h-3.5 w-3.5" />
+                    )
+                  }
+                  className="w-full text-xs font-semibold rounded-xl"
+                >
+                  {isAdded ? 'Added to Cart ✓' : 'Add to Cart'}
+                </Button>
               </div>
             )
           })}

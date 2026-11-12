@@ -28,11 +28,9 @@ export const ResultsRoute: React.FC<{ briefId: string }> = ({ briefId }) => {
     setLoading(true)
     setError(null)
     try {
-      // 1. Load brief first
       const loadedBrief = await apiClient.briefs.get(briefId)
       setBrief(loadedBrief)
 
-      // 2. Perform product search & ranking
       const searchRes = await apiClient.search.searchProducts(briefId)
       setResults(searchRes)
     } catch (err) {
@@ -53,9 +51,9 @@ export const ResultsRoute: React.FC<{ briefId: string }> = ({ briefId }) => {
   }, [loadData])
 
   return (
-    <div className="space-y-8 py-2">
-      {/* Header & Criteria Summary */}
-      <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 sm:p-8 backdrop-blur-md shadow-xl space-y-4">
+    <div className="space-y-6 py-2">
+      {/* Header Summary */}
+      <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-6 sm:p-8 backdrop-blur-md shadow-lg space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
@@ -63,15 +61,15 @@ export const ResultsRoute: React.FC<{ briefId: string }> = ({ briefId }) => {
                 to={`/search/${briefId}`}
                 className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
               >
-                <ArrowLeft className="h-3.5 w-3.5" /> Back to Brief
+                <ArrowLeft className="h-3.5 w-3.5" /> Back to Criteria
               </Link>
               <span className="text-slate-600">•</span>
-              <span className="text-xs text-slate-400 font-mono">
-                {results ? `${results.items.length} curated matches` : 'Discovery'}
+              <span className="text-xs text-slate-400">
+                {results ? `${results.items.length} curated options` : 'Recommendations'}
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
-              Curated Product Recommendations
+              Curated Recommendations
             </h1>
           </div>
 
@@ -96,26 +94,22 @@ export const ResultsRoute: React.FC<{ briefId: string }> = ({ briefId }) => {
               onClick={() => navigate(`/search/${briefId}`)}
               leftIcon={<SlidersHorizontal className="h-4 w-4" />}
             >
-              Edit Brief
+              Edit Criteria
             </Button>
           </div>
         </div>
 
-        {/* Brief Highlights Bar */}
+        {/* Applied Filters & Origin Guide */}
         {brief && (
-          <div className="pt-2 flex flex-wrap items-center gap-2 text-xs">
+          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800/80 text-xs">
             {brief.category && (
-              <span className="px-3 py-1 rounded-full bg-slate-800 text-slate-300 font-medium">
-                Category: <strong className="text-white">{brief.category}</strong>
+              <span className="px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700/60 text-slate-200">
+                Category: <strong>{brief.category}</strong>
               </span>
             )}
             {brief.budget && (
-              <span className="px-3 py-1 rounded-full bg-slate-800 text-slate-300 font-medium">
-                Budget:{' '}
-                <strong className="text-emerald-400">
-                  {brief.budget.currency} {brief.budget.amount}
-                </strong>{' '}
-                ({brief.budget.mode === 'hard_limit' ? 'Max' : 'Target'})
+              <span className="px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700/60 text-slate-200">
+                Budget: <strong className="text-emerald-400">{brief.budget.currency} {brief.budget.amount}</strong> ({brief.budget.mode === 'hard_limit' ? 'Max' : 'Target'})
               </span>
             )}
             {brief.must_have.map((mh, idx) => (
@@ -129,18 +123,18 @@ export const ResultsRoute: React.FC<{ briefId: string }> = ({ briefId }) => {
           </div>
         )}
 
-        {/* Commerce Origin Trust Disclosures */}
+        {/* Source Channels Legend */}
         <div className="pt-3 border-t border-slate-800/80 flex flex-wrap items-center gap-x-6 gap-y-2 text-[11px] text-slate-400">
-          <div className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-amber-400 shrink-0" />
-            <span>
-              <strong className="text-amber-300">BuyNexa Store:</strong> Eligible for instant PayPal Sandbox Checkout
-            </span>
-          </div>
           <div className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-indigo-400 shrink-0" />
             <span>
-              <strong className="text-indigo-300">External Retailers:</strong> Real-time Channel3 merchant offers (outbound link)
+              <strong className="text-indigo-300">BuyNexa Store:</strong> Available for direct in-app cart & checkout
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-slate-400 shrink-0" />
+            <span>
+              <strong className="text-slate-300">External Retailers:</strong> Real-time merchant listings with direct links
             </span>
           </div>
         </div>
@@ -148,31 +142,26 @@ export const ResultsRoute: React.FC<{ briefId: string }> = ({ briefId }) => {
 
       {/* Loading Skeleton */}
       {loading && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between text-xs text-slate-400 px-1">
-            <span>Querying merchant catalogs & ranking evidence...</span>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Skeleton className="h-80 rounded-3xl" />
-            <Skeleton className="h-80 rounded-3xl" />
-            <Skeleton className="h-80 rounded-3xl" />
-            <Skeleton className="h-80 rounded-3xl" />
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Skeleton className="h-80 rounded-2xl" />
+          <Skeleton className="h-80 rounded-2xl" />
+          <Skeleton className="h-80 rounded-2xl" />
+          <Skeleton className="h-80 rounded-2xl" />
         </div>
       )}
 
       {/* Error State */}
-      {!loading && error && (
-        <div className="max-w-xl mx-auto text-center py-12 space-y-4">
-          <div className="p-3 rounded-2xl bg-rose-500/10 text-rose-400 w-fit mx-auto border border-rose-500/20">
+      {error && !loading && (
+        <div className="max-w-md mx-auto text-center py-16 space-y-4">
+          <div className="p-3 rounded-2xl bg-rose-500/10 text-rose-400 w-fit mx-auto">
             <AlertCircle className="h-6 w-6" />
           </div>
           <h2 className="text-xl font-bold text-white">Discovery Service Unavailable</h2>
-          <p className="text-sm text-slate-400 leading-relaxed max-w-md mx-auto">{error}</p>
-          <div className="flex items-center justify-center gap-3 pt-2">
+          <p className="text-sm text-slate-400">{error}</p>
+          <div className="flex justify-center gap-3 pt-2">
             <Button
               type="button"
-              variant="secondary"
+              variant="primary"
               size="sm"
               onClick={loadData}
               leftIcon={<RefreshCw className="h-4 w-4" />}
@@ -191,46 +180,35 @@ export const ResultsRoute: React.FC<{ briefId: string }> = ({ briefId }) => {
         </div>
       )}
 
-      {/* Zero Results State */}
+      {/* Empty State */}
       {!loading && !error && results && results.items.length === 0 && (
         <div className="max-w-md mx-auto text-center py-16 space-y-4">
-          <div className="p-3 rounded-2xl bg-slate-800 text-slate-400 w-fit mx-auto">
+          <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-slate-500 w-fit mx-auto">
             <ShoppingBag className="h-6 w-6" />
           </div>
           <h2 className="text-xl font-bold text-white">No Matching Products Found</h2>
-          <p className="text-sm text-slate-400 leading-relaxed">
-            No merchant listings met your combination of budget, category, and strict must-have constraints.
+          <p className="text-sm text-slate-400">
+            We couldn't find products strictly matching all your criteria. Try adjusting your budget or easing must-have constraints.
           </p>
           <Button
             type="button"
             variant="primary"
-            size="md"
+            size="sm"
             onClick={() => navigate(`/search/${briefId}`)}
             leftIcon={<SlidersHorizontal className="h-4 w-4" />}
             className="mt-2"
           >
-            Relax Constraints in Brief
+            Adjust Criteria
           </Button>
         </div>
       )}
 
-      {/* Products Grid */}
+      {/* Results List */}
       {!loading && !error && results && results.items.length > 0 && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between text-xs text-slate-400 px-1">
-            <span>
-              Showing {results.items.length} verified products from merchant feeds
-            </span>
-            <span className="font-mono text-[11px] text-indigo-400">
-              Ranked by deterministic Python engine
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {results.items.map((item) => (
-              <ProductCard key={item.product.id} item={item} />
-            ))}
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {results.items.map((item) => (
+            <ProductCard key={item.product.id} item={item} />
+          ))}
         </div>
       )}
     </div>

@@ -10,6 +10,8 @@ export interface RouteMatch {
     | 'cart'
     | 'checkout'
     | 'order_confirmation'
+    | 'privacy'
+    | 'terms'
     | 'not_found'
   params: Record<string, string>
   path: string
@@ -76,6 +78,16 @@ export function matchRoute(pathname: string): RouteMatch {
       params: { orderId: orderMatch[1] },
       path: pathname,
     }
+  }
+
+  // 9. Privacy Policy: /privacy
+  if (pathname === '/privacy' || pathname === '/privacy/') {
+    return { name: 'privacy', params: {}, path: pathname }
+  }
+
+  // 10. Terms of Service: /terms
+  if (pathname === '/terms' || pathname === '/terms/') {
+    return { name: 'terms', params: {}, path: pathname }
   }
 
   return { name: 'not_found', params: {}, path: pathname }
