@@ -3,14 +3,14 @@
 from datetime import datetime, timezone
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, get_shopper_session
 from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.db.models.session import ShoppingSession
-from app.features.briefs.repository import BriefRepository
+from app.features.briefs.service import brief_service
 from app.schemas.product import (
     ComparisonRequest,
     ComparisonResponse,
@@ -133,14 +133,11 @@ async def search_products(
     session: ShoppingSession = Depends(get_shopper_session),
 ) -> ProductSearchResponse:
     """Perform real-world product discovery via Channel3 API and apply deterministic ranking."""
-    repo = BriefRepository(db)
-    brief = await repo.get_by_id(payload.brief_id)
-
-    if not brief or brief.session_id != session.id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Shopping brief not found or not owned by active session.",
-        )
+    brief = await brief_service.get_brief(
+        brief_id=payload.brief_id,
+        shopper_session=session,
+        db=db,
+    )
 
     settings = get_settings()
     search_query = brief.category or brief.original_query

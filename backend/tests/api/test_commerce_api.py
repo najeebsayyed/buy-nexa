@@ -66,3 +66,31 @@ async def test_compare_endpoint(async_client: AsyncClient) -> None:
     data = response.json()
     assert len(data["products"]) == 2
     assert len(data["rows"]) >= 3
+
+
+@pytest.mark.asyncio
+async def test_search_endpoint(async_client: AsyncClient) -> None:
+    """Verify search returns ranked product recommendations for an active brief."""
+    # 1. Create a shopping brief
+    brief_res = await async_client.post(
+        "/api/v1/briefs",
+        json={"query": "Comfortable wireless noise-cancelling headphones under $150"},
+    )
+    assert brief_res.status_code == 201
+    brief_id = brief_res.json()["id"]
+
+    # 2. Call search with brief_id
+    search_res = await async_client.post(
+        "/api/v1/search",
+        json={"brief_id": brief_id, "limit": 5},
+    )
+    assert search_res.status_code == 200
+    data = search_res.json()
+    assert data["brief_id"] == brief_id
+    assert len(data["items"]) > 0
+
+    first_item = data["items"][0]
+    assert "product" in first_item
+    assert "recommendation" in first_item
+    assert first_item["recommendation"]["fit_score"] >= 0
+    assert first_item["recommendation"]["rank"] == 1

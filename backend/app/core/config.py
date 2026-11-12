@@ -55,6 +55,26 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         return self.APP_ENV == "production"
 
+    @property
+    def channel3_api_key(self) -> str | None:
+        return self.CHANNEL3_API_KEY
+
+    @property
+    def channel3_base_url(self) -> str:
+        return self.CHANNEL3_BASE_URL
+
+    @property
+    def paypal_client_id(self) -> str | None:
+        return self.PAYPAL_CLIENT_ID
+
+    @property
+    def paypal_client_secret(self) -> str | None:
+        return self.PAYPAL_CLIENT_SECRET
+
+    @property
+    def paypal_base_url(self) -> str:
+        return self.PAYPAL_BASE_URL
+
 
 settings = Settings()
 
